@@ -80,25 +80,27 @@ gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Classic'
 
 ## GRUB 引导主题（可选）
 
-当前使用 [MrVivekRajan/Grub-Themes](https://github.com/MrVivekRajan/Grub-Themes) 的 **SekiroShadow**（只狼、紫粉画风，按 1080p 设计）；引导菜单显示 5 秒。
+当前使用 [harishnkr/bsol](https://github.com/harishnkr/bsol) 的 **Blue Screen of Life**（"蓝屏"恶搞风，1920x1200 / 16:10 设计）；引导菜单显示 30 秒。
 
 ```sh
-# SekiroShadow（当前）
-git clone --depth 1 --filter=blob:none --sparse https://github.com/MrVivekRajan/Grub-Themes ~/grub-themes-extra
-cd ~/grub-themes-extra && git sparse-checkout set SekiroShadow
+# bsol（当前）
+git clone --depth 1 https://github.com/harishnkr/bsol ~/bsol
 sudo mkdir -p /usr/share/grub/themes
-sudo cp -r SekiroShadow /usr/share/grub/themes/
-sudo sed -i 's|^GRUB_THEME=.*|GRUB_THEME="/usr/share/grub/themes/SekiroShadow/theme.txt"|' /etc/default/grub
-sudo sed -i 's|^GRUB_GFXMODE=.*|GRUB_GFXMODE=1920x1080,auto|' /etc/default/grub
-# 让引导菜单显示 5 秒
+sudo cp -r ~/bsol/bsol /usr/share/grub/themes/bsol
+sudo sed -i 's|^GRUB_THEME=.*|GRUB_THEME="/usr/share/grub/themes/bsol/theme.txt"|' /etc/default/grub
+sudo sed -i 's|^GRUB_GFXMODE=.*|GRUB_GFXMODE=1920x1200,auto|' /etc/default/grub
+# 让引导菜单显示 30 秒
 sudo sed -i 's/^GRUB_TIMEOUT_STYLE=.*/GRUB_TIMEOUT_STYLE=menu/' /etc/default/grub
-sudo sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=5/' /etc/default/grub
+sudo sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=30/' /etc/default/grub
 sudo update-grub
 ```
 
-备选：**Tela**（2K 素材，[vinceliuice/grub2-themes](https://github.com/vinceliuice/grub2-themes)）已装在 `/usr/share/grub/themes/tela`——把 `GRUB_THEME` 指回 `…/tela/theme.txt` 并把 `GRUB_GFXMODE` 改回 `2560x1440,auto`，再 `update-grub` 即可切换。
+备选主题（都已装在 `/usr/share/grub/themes/`，改 `GRUB_THEME` + `GRUB_GFXMODE` 再 `sudo update-grub` 即可切换）：
 
-（国外网络先确保代理可用。主题都装在 `/usr/share/grub/themes`，路径可被 GRUB 直接读取——`/boot` 在根分区上。）
+- **SekiroShadow**（只狼紫粉画风，按 1080p 设计 → `GRUB_GFXMODE=1920x1080,auto`；来源 [MrVivekRajan/Grub-Themes](https://github.com/MrVivekRajan/Grub-Themes)，克隆在 `~/grub-themes-extra`）
+- **Tela**（2K 素材 → `GRUB_GFXMODE=2560x1440,auto`；来源 [vinceliuice/grub2-themes](https://github.com/vinceliuice/grub2-themes)，克隆在 `~/grub2-themes`）
+
+（国外网络先确保代理可用。主题装在 `/usr/share/grub/themes`，路径可被 GRUB 直接读取——`/boot` 在根分区上。）
 
 ## 日常同步
 
