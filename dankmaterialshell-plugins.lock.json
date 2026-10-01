@@ -1,0 +1,10 @@
+{
+  "lockfileVersion": 1,
+  "plugins": {
+    "dankNotepadModule": {
+      "repo": "https://github.com/AvengeMedia/dms-plugins",
+      "path": "DankNotepadModule",
+      "commit": "e774a9756f2a50499c37a5513f28bee4ebe81d73"
+    }
+  }
+}

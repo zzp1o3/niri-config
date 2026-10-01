@@ -1,0 +1,13 @@
+{
+    "id": "zzpClockWeather",
+    "name": "时间与天气",
+    "description": "把时钟/日期与天气合并为一个栏组件：显示时间、日期、当前天气；左键打开日历概览，右键打开天气详情（DankDash 对应标签页）。",
+    "version": "1.0.0",
+    "license": "MIT",
+    "author": "local",
+    "icon": "schedule",
+    "type": "widget",
+    "component": "./ClockWeather.qml",
+    "capabilities": ["dankbar-widget"],
+    "requires_dms": ">=1.6.0"
+}

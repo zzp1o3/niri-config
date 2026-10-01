@@ -1,0 +1,15 @@
+{
+    "id": "zzpPerfMonitor",
+    "name": "性能监控 (CPU/内存/GPU)",
+    "description": "合并的实时性能监控：栏上同时显示 CPU / 内存 / GPU 占用，点击展开三个仪表盘面板，并可打开进程列表。",
+    "version": "1.0.0",
+    "license": "MIT",
+    "author": "local",
+    "icon": "speed",
+    "type": "widget",
+    "component": "./PerfMonitor.qml",
+    "settings": "./PerfMonitorSettings.qml",
+    "capabilities": ["dankbar-widget"],
+    "requires_dms": ">=1.6.0",
+    "permissions": ["settings_read", "settings_write"]
+}
