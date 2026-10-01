@@ -78,6 +78,21 @@ gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Classic'
 4. 注销重登 niri；进 DMS 设置 → 插件 → 扫描插件（两个 zzp 插件应自动就位）；
 5. 壁纸路径等机器相关项按需调整（DMS 设置里改）。
 
+## GRUB 引导主题（可选）
+
+使用 [vinceliuice/grub2-themes](https://github.com/vinceliuice/grub2-themes) 的 **Tela** 主题（2K 素材），并让引导菜单显示 5 秒：
+
+```sh
+git clone --depth 1 https://github.com/vinceliuice/grub2-themes.git ~/grub2-themes
+cd ~/grub2-themes
+sudo ./install.sh -t tela -s 2k          # 主题装到 /usr/share/grub/themes/tela
+sudo sed -i 's/^GRUB_TIMEOUT_STYLE=.*/GRUB_TIMEOUT_STYLE=menu/' /etc/default/grub
+sudo sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=5/' /etc/default/grub
+sudo update-grub
+```
+
+（国外网络先确保代理可用；卸载：`sudo ./install.sh -r tela` + `sudo update-grub`。）
+
 ## 日常同步
 
 本机配置改动后，在仓库目录执行：
