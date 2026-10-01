@@ -64,7 +64,7 @@ cp scripts/* ~/.local/bin/ && chmod +x ~/.local/bin/niri-flow ~/.local/bin/niri-
 cp -r plugins/* ~/.config/DankMaterialShell/plugins/
 cp dankmaterialshell-settings.json ~/.config/DankMaterialShell/settings.json
 cp dankmaterialshell-plugins.lock.json ~/.config/DankMaterialShell/plugins.lock.json
-sudo install -D -m 644 keyd-default.conf /etc/keyd/default.conf   # 可选
+sudo install -D -m 644 keyd-default.conf /etc/keyd/default.conf && sudo systemctl restart keyd   # 可选（必须 restart 才会加载配置）
 ```
 
 3. 鼠标指针主题（Bibata 经典黑白，国外网络需代理则加 `-x http://127.0.0.1:7897`）：
