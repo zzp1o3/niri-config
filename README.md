@@ -23,6 +23,8 @@
 | `dankmaterialshell-settings.json` | `~/.config/DankMaterialShell/settings.json` | DMS 全部设置（栏布局、托盘等） |
 | `dankmaterialshell-plugins.lock.json` | `~/.config/DankMaterialShell/plugins.lock.json` | DMS 插件清单 |
 | `keyd-default.conf` | `/etc/keyd/default.conf`（需 sudo） | keyd 的 mod-tap 配置（可选） |
+| `grub-themes/` | `/usr/share/grub/themes/` | 三个 GRUB 引导主题的完整文件（bsol / SekiroShadow / tela），离线可还原 |
+| `switch-grub-theme.sh` | 本仓库内（sudo 运行） | 一键切换 GRUB 主题 |
 | `sync.sh` | 本仓库内 | 一键同步脚本：把当前机器的实时配置同步回仓库并推送 |
 
 ## 快捷键（相对默认配置的自定义部分）
@@ -80,27 +82,33 @@ gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Classic'
 
 ## GRUB 引导主题（可选）
 
-当前使用 [harishnkr/bsol](https://github.com/harishnkr/bsol) 的 **Blue Screen of Life**（"蓝屏"恶搞风，1920x1200 / 16:10 设计）；引导菜单显示 30 秒。
+三个主题的**完整文件都在本仓库 `grub-themes/`**（离线还原，装机无需再下载），引导菜单显示 30 秒：
+
+| 主题 | 风格 | 设计分辨率（`GRUB_GFXMODE`） |
+|---|---|---|
+| `bsol` | "蓝屏"恶搞风（Blue Screen of Life） | `1920x1200,auto` |
+| `SekiroShadow` | 只狼 · 紫粉画风 | `1920x1080,auto` |
+| `tela` | 极简深灰 + 几何色块（2K 素材，16MB） | `2560x1440,auto` |
+
+**一键切换**（在仓库目录内，需 sudo）：
 
 ```sh
-# bsol（当前）
-git clone --depth 1 https://github.com/harishnkr/bsol ~/bsol
-sudo mkdir -p /usr/share/grub/themes
-sudo cp -r ~/bsol/bsol /usr/share/grub/themes/bsol
-sudo sed -i 's|^GRUB_THEME=.*|GRUB_THEME="/usr/share/grub/themes/bsol/theme.txt"|' /etc/default/grub
-sudo sed -i 's|^GRUB_GFXMODE=.*|GRUB_GFXMODE=1920x1200,auto|' /etc/default/grub
-# 让引导菜单显示 30 秒
-sudo sed -i 's/^GRUB_TIMEOUT_STYLE=.*/GRUB_TIMEOUT_STYLE=menu/' /etc/default/grub
-sudo sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=30/' /etc/default/grub
+sudo ./switch-grub-theme.sh <bsol|SekiroShadow|tela>
+```
+
+脚本会自动：复制主题到 `/usr/share/grub/themes/` → 设置 `GRUB_THEME` 与对应的 `GRUB_GFXMODE` → 确保菜单显示 30 秒 → 运行 `update-grub`。
+
+等价的原始命令（手动操作时用，`<theme>` 与 `<GFX>` 对照上表）：
+
+```sh
+sudo cp -r grub-themes/<theme> /usr/share/grub/themes/
+sudo sed -i 's|^GRUB_THEME=.*|GRUB_THEME="/usr/share/grub/themes/<theme>/theme.txt"|' /etc/default/grub
+sudo sed -i 's|^GRUB_GFXMODE=.*|GRUB_GFXMODE=<GFX>,auto|' /etc/default/grub
+sudo sed -i 's/^GRUB_TIMEOUT_STYLE=.*/GRUB_TIMEOUT_STYLE=menu/;s/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=30/' /etc/default/grub
 sudo update-grub
 ```
 
-备选主题（都已装在 `/usr/share/grub/themes/`，改 `GRUB_THEME` + `GRUB_GFXMODE` 再 `sudo update-grub` 即可切换）：
-
-- **SekiroShadow**（只狼紫粉画风，按 1080p 设计 → `GRUB_GFXMODE=1920x1080,auto`；来源 [MrVivekRajan/Grub-Themes](https://github.com/MrVivekRajan/Grub-Themes)，克隆在 `~/grub-themes-extra`）
-- **Tela**（2K 素材 → `GRUB_GFXMODE=2560x1440,auto`；来源 [vinceliuice/grub2-themes](https://github.com/vinceliuice/grub2-themes)，克隆在 `~/grub2-themes`）
-
-（国外网络先确保代理可用。主题装在 `/usr/share/grub/themes`，路径可被 GRUB 直接读取——`/boot` 在根分区上。）
+主题来源：[harishnkr/bsol](https://github.com/harishnkr/bsol)、[MrVivekRajan/Grub-Themes](https://github.com/MrVivekRajan/Grub-Themes)、[vinceliuice/grub2-themes](https://github.com/vinceliuice/grub2-themes)。想再找新主题可逛 [Gorgeous-GRUB 精选合集](https://github.com/Jacksaur/Gorgeous-GRUB) 或 [pling.me 的 GRUB2 分类](https://www.pling.me/browse?cat=151&tag=grub2)。
 
 ## 日常同步
 
