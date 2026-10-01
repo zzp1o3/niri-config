@@ -1,0 +1,233 @@
+#!/usr/bin/env python3
+"""niri window-flow between monitors.
+
+Design:
+  * When a monitor is over-capacity (some window is FULLY pushed out of its
+    view, +120px safety margin), the monitor's LEAST-RECENTLY-FOCUSED window
+    (by niri's focus_timestamp, never the currently focused one) hops over
+    to the other monitor, appended at its strip end.
+    The user's focus is restored afterwards.
+  * A window that is FULLY hidden on the other monitor is pulled in when
+    this monitor has clear room for it (+60px margin).  Visible windows
+    are never moved, so the layout never changes under the user's eyes.
+  * Per-window cooldown prevents ping-pong.
+
+niri doesn't expose "is this window visible", so the view position is
+simulated per output using niri's minimal-scroll rule (config has
+center-focused-column "never"), with a safety margin on every decision.
+"""
+import json
+import subprocess
+import threading
+import time
+from pathlib import Path
+
+GAP = 16.0            # niri layout gaps (config.kdl)
+STRUT = 40.0          # DMS vertical bar strut, logical px
+OUT_MARGIN = 120.0    # must be out by this much to count as "hidden"
+ROOM_MARGIN = 60.0    # extra room required before pulling a window in
+COOLDOWN = 6.0        # seconds before a window may be moved again
+DEBOUNCE = 0.35       # coalesce layout event bursts
+LOG = Path.home() / ".local/state/niri-flow.log"
+
+
+def log(msg):
+    try:
+        with LOG.open("a") as f:
+            f.write(f"{time.strftime('%H:%M:%S')} {msg}\n")
+    except OSError:
+        pass
+
+
+def niri(*args):
+    return subprocess.run(["niri", "msg", *args], capture_output=True, text=True).stdout
+
+
+def jniri(*args):
+    try:
+        return json.loads(niri(*args) or "null")
+    except Exception:
+        return None
+
+
+def outputs():
+    """name -> (width, x) in logical px."""
+    res = {}
+    cur = None
+    for line in niri("outputs").splitlines():
+        s = line.strip()
+        if line.startswith("Output ") and line.rstrip().endswith(")"):
+            cur = line.rstrip().rsplit("(", 1)[1][:-1]
+            res[cur] = [None, None]
+        elif cur and s.startswith("Logical size:"):
+            res[cur][0] = float(s.split(":")[1].strip().split("x")[0])
+        elif cur and s.startswith("Logical position:"):
+            res[cur][1] = float(s.split(":")[1].strip().split(",")[0])
+    return {k: (v[0], v[1]) for k, v in res.items() if v[0] and v[1] is not None}
+
+
+def focused_win_id():
+    w = jniri("--json", "focused-window")
+    return w["id"] if w else None
+
+
+class Flow:
+    def __init__(self):
+        self.view = {}          # output -> view x offset
+        self.calibrated = set()  # outputs whose view we have observed focused
+        self.moved = {}          # window id -> last move time
+        self.timer = None
+        self.lock = threading.Lock()
+        self.busy = False
+
+    # ---------- view simulation ----------
+    def columns(self, wins, wsid):
+        cols = {}
+        for w in wins:
+            if w.get("workspace_id") != wsid or not w.get("layout"):
+                continue
+            p = w["layout"].get("pos_in_scrolling_layout")
+            if p:
+                cols[p[0]] = w
+        return cols
+
+    def reconcile(self):
+        with self.lock:
+            if self.busy:
+                return
+            self.busy = True
+        try:
+            self._reconcile()
+        finally:
+            with self.lock:
+                self.busy = False
+
+    def _reconcile(self):
+        outs = outputs()
+        if len(outs) < 2:
+            return
+        wins = [w for w in (jniri("--json", "windows") or []) if not w.get("is_floating")]
+        wss = jniri("--json", "workspaces") or []
+        active_ws = {w["output"]: w["id"] for w in wss if w.get("is_active")}
+        focused = next((w for w in wins if w.get("is_focused")), None)
+        now = time.time()
+
+        hidden = {}
+        rooms = {}
+        for out, (out_w, _x) in outs.items():
+            wsid = active_ws.get(out)
+            cols = self.columns(wins, wsid)
+            order = sorted(cols)
+            xs, x = {}, 0.0
+            for c in order:
+                xs[c] = x
+                x += cols[c]["layout"]["tile_size"][0] + GAP
+            total = max(0.0, x - GAP)
+            aw = max(1.0, out_w - STRUT)
+            vx = self.view.get(out, 0.0)
+            fw = None
+            if focused and focused.get("workspace_id") == wsid:
+                fw = focused
+            if fw and fw["layout"].get("pos_in_scrolling_layout"):
+                fc = fw["layout"]["pos_in_scrolling_layout"][0]
+                if fc in xs:
+                    ww = fw["layout"]["tile_size"][0]
+                    if xs[fc] + ww > vx + aw:
+                        vx = xs[fc] + ww - aw
+                    if xs[fc] < vx:
+                        vx = xs[fc]
+                    self.calibrated.add(out)
+            vx = max(0.0, min(vx, total - aw)) if total > aw else 0.0
+            self.view[out] = vx
+            rooms[out] = aw - total
+            hw = []
+            for c in order:
+                w = cols[c]
+                ww = w["layout"]["tile_size"][0]
+                if xs[c] + ww <= vx - OUT_MARGIN or xs[c] >= vx + aw + OUT_MARGIN:
+                    hw.append(w)
+            hidden[out] = hw
+
+        # 1) spill: a monitor is over-capacity (some window fully out) ->
+        #    evict its least-recently-focused window to the other monitor.
+        for out, hlist in hidden.items():
+            if not hlist:
+                continue
+            other = next((o for o in outs if o != out), None)
+            if not other:
+                continue
+            wsid = active_ws.get(out)
+            cand = [w for w in wins
+                    if w.get("workspace_id") == wsid and not w.get("is_focused")]
+            if not cand:
+                continue
+
+            def focus_time(w):
+                t = w.get("focus_timestamp") or {}
+                return (t.get("secs", 0), t.get("nanos", 0))
+
+            lru = min(cand, key=focus_time)
+            if now - self.moved.get(lru["id"], 0) < COOLDOWN:
+                continue
+            self._move(lru, out, other)
+            return
+
+        # 2) fill: clear room here + fully hidden window on the other monitor
+        for out, room in rooms.items():
+            if room <= ROOM_MARGIN:
+                continue
+            other = next((o for o in outs if o != out), None)
+            if not other or other not in self.calibrated:
+                continue
+            for w in hidden.get(other, []):
+                if now - self.moved.get(w["id"], 0) < COOLDOWN:
+                    continue
+                if w["layout"]["tile_size"][0] + 2 * GAP + ROOM_MARGIN <= room:
+                    self._move(w, other, out)
+                    return
+
+    def _move(self, w, src, dst):
+        prev = focused_win_id()
+        niri("action", "focus-window", "--id", str(w["id"]))
+        time.sleep(0.04)
+        direction = "right" if outputs()[dst][1] > outputs()[src][1] else "left"
+        niri("action", f"move-column-to-monitor-{direction}")
+        time.sleep(0.04)
+        if prev and prev != w["id"]:
+            niri("action", "focus-window", "--id", str(prev))
+        self.moved[w["id"]] = time.time()
+        log(f"moved win {w['id']} ({w.get('app_id','?')}) {src} -> {dst}")
+
+    # ---------- event handling ----------
+    def schedule(self, _reason=""):
+        with self.lock:
+            if self.timer:
+                self.timer.cancel()
+            self.timer = threading.Timer(DEBOUNCE, self.reconcile)
+            self.timer.start()
+
+
+def main():
+    log("--- niri-flow started ---")
+    flow = Flow()
+    flow.schedule("start")
+
+    interesting = ("WindowOpenedOrChanged", "WindowClosed", "WindowFocusChanged",
+                   "WorkspaceActivated", "WindowLayoutsChanged", "WorkspaceActiveWindowChanged")
+
+    def periodic():
+        while True:
+            time.sleep(3)
+            flow.schedule("periodic")
+
+    threading.Thread(target=periodic, daemon=True).start()
+
+    proc = subprocess.Popen(["niri", "msg", "--json", "event-stream"],
+                            stdout=subprocess.PIPE, text=True)
+    for line in proc.stdout:
+        if any(k in line for k in interesting):
+            flow.schedule()
+
+
+if __name__ == "__main__":
+    main()

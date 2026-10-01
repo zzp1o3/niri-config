@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+"""Cross-monitor focus continuation.
+
+Run a vertical focus action (e.g. focus-window-or-workspace-down). If it
+hits the edge of the current monitor (focused workspace and window both
+unchanged), focus the *other* monitor by name instead — so vertical
+navigation flows across screens like one continuous workspace stack.
+
+Usage: niri-focus-cross <primary-action> [legacy-fallback-arg-ignored]
+"""
+import json
+import subprocess
+import sys
+import time
+
+
+def niri(*args):
+    return subprocess.run(["niri", "msg", *args], capture_output=True, text=True).stdout
+
+
+def state():
+    try:
+        ws = json.loads(niri("--json", "workspaces") or "[]")
+    except json.JSONDecodeError:
+        ws = []
+    focused_ws = next((w["id"] for w in ws if w.get("is_focused")), None)
+    try:
+        win = json.loads(niri("--json", "focused-window") or "null")
+    except json.JSONDecodeError:
+        win = None
+    return (focused_ws, win["id"] if win else 0)
+
+
+def output_names():
+    names = []
+    for line in niri("outputs").splitlines():
+        line = line.rstrip()
+        if line.startswith("Output ") and line.endswith(")"):
+            names.append(line.rsplit("(", 1)[1][:-1])
+    return names
+
+
+def focused_output():
+    lines = niri("focused-output").splitlines()
+    line = lines[0].rstrip() if lines else ""
+    if line.endswith(")") and "(" in line:
+        return line.rsplit("(", 1)[1][:-1]
+    return None
+
+
+def main():
+    primary = sys.argv[1] if len(sys.argv) > 1 else "focus-window-or-workspace-down"
+    before = state()
+    subprocess.run(["niri", "msg", "action", primary], capture_output=True)
+    # The action is queued by the compositor; give it a moment and re-check
+    # so a stale read can't trigger a spurious cross-monitor jump.
+    time.sleep(0.05)
+    if state() != before:
+        return
+    time.sleep(0.1)
+    if state() != before:
+        return
+    cur = focused_output()
+    for name in output_names():
+        if name != cur:
+            subprocess.run(["niri", "msg", "action", "focus-monitor", name], capture_output=True)
+            return
+
+
+if __name__ == "__main__":
+    main()

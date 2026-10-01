@@ -1,0 +1,31 @@
+#!/bin/sh
+# Toggle wf-recorder screen recording. Recordings are saved to the XDG Videos dir.
+
+if ! command -v wf-recorder >/dev/null 2>&1; then
+    notify-send "屏幕录制" "未安装 wf-recorder，请先运行: sudo apt install wf-recorder"
+    exit 1
+fi
+
+if pgrep -x wf-recorder >/dev/null; then
+    pkill -INT -x wf-recorder
+    i=0
+    while pgrep -x wf-recorder >/dev/null && [ "$i" -lt 25 ]; do
+        sleep 0.2
+        i=$((i + 1))
+    done
+    notify-send "屏幕录制" "录制已停止，文件已保存"
+    exit 0
+fi
+
+outdir="$(xdg-user-dir VIDEOS 2>/dev/null)"
+[ -n "$outdir" ] || outdir="$HOME/Videos"
+mkdir -p "$outdir"
+
+out="$(niri msg focused-output 2>/dev/null | sed -n 's/^Output .*(\(.*\))$/\1/p')"
+if [ -n "$out" ]; then
+    set -- -o "$out"
+else
+    set --
+fi
+nohup wf-recorder "$@" -f "$outdir/屏幕录制-$(date +%Y%m%d-%H%M%S).mp4" >/dev/null 2>&1 &
+notify-send "屏幕录制" "开始录制当前屏幕，再按一次 Ctrl+Shift+R 停止"
