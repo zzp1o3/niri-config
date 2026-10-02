@@ -31,7 +31,7 @@ PluginSettings {
         settingKey: "batteryStyle"
         label: "样式"
         description: "图标 / 实心环 / 描边环 / 圆圈环（默认跟随栏条目里的设置）"
-        defaultValue: ""
+        defaultValue: "auto"
         options: [
             {
                 label: "跟随条目设置（推荐）",
