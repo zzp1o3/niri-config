@@ -19,6 +19,8 @@ PluginComponent {
     id: root
 
     property var popoutService: null    // 由 WidgetHost 注入
+    property var vPillRoot: null        // 悬浮定位用（与其它插件同款；漏声明会导致定位静默失败）
+    property var hPillRoot: null
 
     // 显式 visible 绑定（DMS 显隐管理必需；effectiveVisible 恒为 true，本插件无 visibilityCommand）
     visible: root.effectiveVisible
@@ -49,10 +51,56 @@ PluginComponent {
             root.popoutService.toggleBattery(x, y, w, s, scr);
     }
 
+    // 悬浮 → 电池面板以 hover 模式弹出、移开自动消失（对齐内置 battery 的悬浮行为；
+    // 用户反馈"原本有面板、换掉后没有了"——之前只实现了点击）
+    property string _pendingTrigger: ""
+    property int _pendingRetries: 0
+
+    Timer {
+        id: _batteryRetryTimer
+
+        interval: 120
+        onTriggered: root.openBatteryNow(root._pendingTrigger, root._pendingRetries)
+    }
+
+    function triggerHoverPopout(widgetHostId) {
+        const loader = PopoutService.batteryPopoutLoader;
+        if (!loader)
+            return;
+        loader.active = true;
+        Qt.callLater(() => root.openBatteryNow(widgetHostId, 12));
+    }
+
+    function openBatteryNow(widgetHostId, retries) {
+        const pop = PopoutService.batteryPopout;
+        if (!pop)
+            return;
+        // 同其它插件：弹窗关闭动画中时 PopoutManager 会吞掉 hover 请求 → 稍后重试
+        if (pop.isClosing && retries > 0) {
+            root._pendingTrigger = widgetHostId;
+            root._pendingRetries = retries - 1;
+            _batteryRetryTimer.restart();
+            return;
+        }
+        const pill = root.isVertical ? root.vPillRoot : root.hPillRoot;
+        if (!pill)
+            return;
+        const globalPos = pill.mapToItem(null, 0, 0);
+        const screen = root.parentScreen || Screen;
+        const barPosition = root.axis?.edge === "left" ? 2 : (root.axis?.edge === "right" ? 3 : (root.axis?.edge === "top" ? 0 : 1));
+        const pos = SettingsData.getPopupTriggerPosition(globalPos, screen, root.barThickness, pill.width, root.barSpacing, barPosition, root.barConfig);
+        pop.setTriggerPosition(pos.x, pos.y, pos.width, root.section, screen, barPosition, root.barThickness, root.barSpacing, root.barConfig);
+        PopoutManager.requestHoverPopout(pop, undefined, widgetHostId || root.pluginId);
+    }
+
     verticalBarPill: Component {
         Item {
+            id: vPillItem
+
             implicitWidth: root.widgetThickness
             implicitHeight: batteryColumn.implicitHeight
+
+            Component.onCompleted: root.vPillRoot = vPillItem
 
             Column {
                 id: batteryColumn
@@ -94,8 +142,12 @@ PluginComponent {
     horizontalBarPill: Component {
         // Row 是 positioner，implicitHeight 只读 → 用 Item 包一层给显式隐式尺寸（同内置 Clock 写法）
         Item {
+            id: hPillItem
+
             implicitWidth: hRow.implicitWidth
             implicitHeight: root.widgetThickness
+
+            Component.onCompleted: root.hPillRoot = hPillItem
 
             Row {
                 id: hRow

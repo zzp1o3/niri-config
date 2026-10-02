@@ -121,10 +121,25 @@ PluginComponent {
         runAction("niri msg output " + output + " mode " + mode);
     }
 
+    // 2026-10-02：预设选中态（用户反馈"选择后没有高亮反馈"）。
+    // 记录最近应用的预设，并与当前（EC 量化后的）曲线近似比对——误差大（如切档位重置曲线）则不再高亮。
+    property string appliedPreset: ""
+
+    function presetClose(name) {
+        const c = root.fanPresets[name];
+        if (!c || root.fanCurve.length !== 10)
+            return false;
+        let diff = 0;
+        for (let i = 0; i < 10; i++)
+            diff += Math.abs((root.fanCurve[i] ?? 0) - c[i]);
+        return diff / 10 < 4;
+    }
+
     function applyFanPreset(name) {
         const c = root.fanPresets[name];
         if (!c)
             return;
+        root.appliedPreset = name;
         runLed("fancurve '" + c.join(" ") + "'");
     }
 
@@ -378,6 +393,10 @@ PluginComponent {
     }
 
     component SectionCaption: StyledText {
+        // 2026-10-02：防超边界（用户反馈"括号内描述超边界"）——不换行 + 超长省略
+        width: parent.width
+        wrapMode: Text.NoWrap
+        elide: Text.ElideRight
         text: ""
         font.pixelSize: 11
         color: Theme.surfaceVariantText
@@ -471,9 +490,11 @@ PluginComponent {
 
                         StyledText {
                             width: parent.width
-                            text: "风扇 " + root.fanRpm1 + " / " + root.fanRpm2 + " RPM" + (root.batteryHealth > 0 ? "   ·   电池 " + root.batteryHealth + "% · 循环 " + root.batteryCycles + (root.batteryW > 0 ? " · " + root.batteryW.toFixed(1) + "W" : "") : "")
+                            // 2026-10-02：固定单行（refresh 时数值宽度变化会引发换行→整面板抖动，用户反馈）
+                            text: "风扇 " + root.fanRpm1 + "/" + root.fanRpm2 + " RPM" + (root.batteryHealth > 0 ? " · 电池 " + root.batteryHealth + "%" + (root.batteryW > 0 ? " " + root.batteryW.toFixed(1) + "W" : "") : "")
                             font.pixelSize: 11
                             color: Theme.surfaceVariantText
+                            wrapMode: Text.NoWrap
                             elide: Text.ElideRight
                         }
                     }
@@ -481,7 +502,7 @@ PluginComponent {
 
                 // ── 性能模式 ──
                 SectionCaption {
-                    text: "性能模式（power-profiles-daemon / platform_profile）"
+                    text: "性能模式"
                 }
 
                 SegmentRow {
@@ -713,15 +734,15 @@ PluginComponent {
                     items: [
                         {
                             label: "安静",
-                            selected: false
+                            selected: root.appliedPreset === "quiet" && root.presetClose("quiet")
                         },
                         {
                             label: "均衡",
-                            selected: false
+                            selected: root.appliedPreset === "balanced" && root.presetClose("balanced")
                         },
                         {
                             label: "性能",
-                            selected: false
+                            selected: root.appliedPreset === "perf" && root.presetClose("perf")
                         }
                     ]
                     onPick: i => root.applyFanPreset(i === 0 ? "quiet" : (i === 1 ? "balanced" : "perf"))

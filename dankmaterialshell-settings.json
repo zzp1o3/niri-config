@@ -18,6 +18,7 @@
   "appDrawerSectionViewModes": {
     "apps": "list"
   },
+  "iconThemeDark": "Bibata-Modern-Classic",
   "cursorSettings": {
     "theme": "System Default",
     "size": 24,
