@@ -95,7 +95,11 @@
 ## 其他已知问题 / 背景
 
 - **主题重启后跳成深色（已修）**：根因是 `session.json` 的 `nightModeAutoEnabled=true` + `nightModeAutoMode="location"` 而本机无坐标（日志会警告），自动夜间模式乱判；已置 `nightModeAutoEnabled=false`（暖色 `nightModeEnabled` 保留）。另：壁纸路径曾指向已不存在的 `~/图片/photos/`，已修正到 `~/图片/wallpaper/`。
-- **天气位置（待用户设置）**：`session.json` 的 `weatherLocation`/`weatherCoordinates`/`useAutoLocation` 三项默认全空 → 天气取不到正确位置。**不要用"自动定位"**（IP 定位走代理出口=日本）。正确做法：设置 → 时间与天气 → 天气 → 位置搜索（走 `dms dl` 调 open-meteo geocoding，实测直连可用），搜 "北京"/"Beijing" 选中即生效（免重启）。参考：直连实测真实出口在北京市西城区。
+- **天气位置（2026-10-02 已查清，待用户填入）**：位置存 `session.json` 的 `weatherLocation`(城市名)/`weatherCoordinates`("lat,lon")/`useAutoLocation`，三项默认全空 → 天气取不到正确位置。
+  - **用户实际所在地：江西省抚州市临川区**（用户亲口确认；**不要信 IP 定位**——直连 IP 库把它解析成北京西城区，实测错误；"自动定位"更不行，会走代理出口=日本）。
+  - **设置界面里的"Location Search"在本机永远搜不到** ✗：它走 `dms dl` → **nominatim.openstreetmap.org 直连被墙**（实测超时；经代理 7897 可达 ✓，但 `dms dl` 不走代理）。→ 别在这上面浪费时间。
+  - **正确做法（免重启、即时生效）**：设置 → 时间与天气 → 天气 → **Custom Location → 纬度 / 经度** 手动填：**纬度 27.95999，经度 116.33333**（open-meteo geocoding 里 "Fuzhou | Jiangxi" 的坐标，即抚州市区=临川区；注意 count=1 搜 "Fuzhou" 会命中福州福建 ✗）。该输入写入 `SessionData.weatherCoordinates` + `saveSettings()`，纯运行时写入，立刻生效。
+  - 参考：open-meteo geocoding 直连可用（`dms dl`）✓；nominatim 只能经代理 ✓。
 - gnome-control-center 在 niri 会话被拒（"only supported under GNOME and Unity"），包装脚本 `~/.local/bin/gnome-control-center`（注入 XDG_CURRENT_DESKTOP=GNOME）。
 - 电池百分比数字已由 `showBatteryPercent: false` 全局关闭（用户要求）；zzpBattery 设置页有同名开关可覆盖。
 - 自研插件历史版本全在 `~/niri-config` git 历史（`git show <commit>:<path>`）；`sync.sh` 现已覆盖全部 8 个插件 + 助手脚本 + AGENTS.md 本身。
