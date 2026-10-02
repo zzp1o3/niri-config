@@ -126,8 +126,15 @@ PluginComponent {
 
     popoutContent: Component {
         Item {
+            // PluginPopout 将面板高度绑定到根 Item 的 implicitHeight，必须显式给出
+            implicitHeight: panelColumn.implicitHeight + Theme.spacingM * 2
+
             Column {
-                anchors.fill: parent
+                id: panelColumn
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
                 anchors.margins: Theme.spacingM
                 spacing: Theme.spacingS
 

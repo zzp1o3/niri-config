@@ -19,11 +19,13 @@ import qs.Modules.Plugins
 PluginComponent {
     id: root
 
-    pillClickAction: () => {
-        const win = root.blurBarWindow;
-        if (win && win.triggerControlCenter)
-            win.triggerControlCenter();
-    }
+    // 旧写法已注释：pillClickAction 会被悬浮控制器在悬浮时误触发（悬浮=弹控制中心且不自动消失）。
+    // 点击改为 pill 内容里的 MouseArea 处理，行为不变。
+    // pillClickAction: () => {
+    //     const win = root.blurBarWindow;
+    //     if (win && win.triggerControlCenter)
+    //         win.triggerControlCenter();
+    // }
     pillRightClickAction: () => Quickshell.execDetached(["dms", "ipc", "call", "dash", "toggle", "overview"])
 
     // Icon-scale-based sizing: the content-area formula (widgetThickness -
@@ -108,6 +110,16 @@ PluginComponent {
                 height: root.avatarSize
                 anchors.centerIn: parent
             }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    const win = root.blurBarWindow;
+                    if (win && win.triggerControlCenter)
+                        win.triggerControlCenter();
+                }
+            }
         }
     }
 
@@ -121,6 +133,16 @@ PluginComponent {
                 width: root.avatarSize
                 height: root.avatarSize
                 anchors.centerIn: parent
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    const win = root.blurBarWindow;
+                    if (win && win.triggerControlCenter)
+                        win.triggerControlCenter();
+                }
             }
         }
     }

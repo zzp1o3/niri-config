@@ -13,8 +13,25 @@ import qs.Modules.Plugins
 PluginComponent {
     id: root
 
-    pillClickAction: () => Quickshell.execDetached(["dms", "ipc", "call", "dash", "toggle", "overview"])
-    pillRightClickAction: () => Quickshell.execDetached(["dms", "ipc", "call", "dash", "toggle", "weather"])
+    // 旧写法已注释：pillClickAction 会被悬浮控制器在悬浮时误触发（悬浮=打开概览页且不自动消失）。
+    // 改为在 pill 内容里用 MouseArea 处理点击，行为不变。
+    // pillClickAction: () => Quickshell.execDetached(["dms", "ipc", "call", "dash", "toggle", "overview"])
+    // pillRightClickAction: () => Quickshell.execDetached(["dms", "ipc", "call", "dash", "toggle", "weather"])
+
+    function openOverview() {
+        Quickshell.execDetached(["dms", "ipc", "call", "dash", "toggle", "overview"])
+    }
+
+    function openWeather() {
+        Quickshell.execDetached(["dms", "ipc", "call", "dash", "toggle", "weather"])
+    }
+
+    component PillClickArea: MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        cursorShape: Qt.PointingHandCursor
+        onClicked: mouse => mouse.button === Qt.RightButton ? root.openWeather() : root.openOverview()
+    }
 
     // ---------- time ----------
     property date now: new Date()
@@ -92,6 +109,8 @@ PluginComponent {
         Column {
             spacing: 0
 
+            PillClickArea {}
+
             Row {
                 spacing: 0
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -160,6 +179,8 @@ PluginComponent {
     horizontalBarPill: Component {
         Row {
             spacing: Theme.spacingS
+
+            PillClickArea {}
 
             StyledText {
                 text: root.hoursText + ":" + root.minutesText + root.ampmText
