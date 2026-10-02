@@ -36,9 +36,9 @@ if [ -f "$HOME/.config/DankMaterialShell/plugins.lock.json" ]; then
     cp "$HOME/.config/DankMaterialShell/plugins.lock.json" "$R/dankmaterialshell-plugins.lock.json"
 fi
 
-# keyd（可选）
-if [ -f "$HOME/keyd-default.conf" ]; then
-    cp "$HOME/keyd-default.conf" "$R/keyd-default.conf"
+# keyd（真实配置在 /etc/keyd/default.conf，世界可读；~/keyd-default.conf 中间副本已删除）
+if [ -f /etc/keyd/default.conf ]; then
+    cp /etc/keyd/default.conf "$R/keyd-default.conf"
 fi
 
 cd "$R"
