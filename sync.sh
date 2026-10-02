@@ -44,7 +44,13 @@ fi
 cd "$R"
 "$GIT" add -A
 if "$GIT" diff --cached --quiet; then
-    echo "没有变化，无需提交。"
+    # 没有新改动，但可能还有上次推送失败的积压提交
+    if [ -n "$("$GIT" log '@{u}..HEAD' --oneline 2>/dev/null)" ]; then
+        GIT_TERMINAL_PROMPT=0 "$GIT" push
+        echo "✓ 已推送积压的提交。"
+    else
+        echo "没有变化，无需提交。"
+    fi
     exit 0
 fi
 "$GIT" commit -m "sync: $(date '+%Y-%m-%d %H:%M:%S')"
