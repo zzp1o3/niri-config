@@ -13,5 +13,8 @@
   },
   "zzpUserAvatar": {
     "enabled": true
+  },
+  "zzpMediaCover": {
+    "enabled": true
   }
 }

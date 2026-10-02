@@ -1,0 +1,13 @@
+{
+    "id": "zzpMediaCover",
+    "name": "媒体封面",
+    "description": "在栏上显示正在播放曲目的专辑封面（MPRIS，含浏览器媒体会话，如 music.163.com）。鼠标悬浮浮现上一首/播放暂停/下一首控件；左键封面播放暂停，右键打开 DankDash 媒体页。无播放器时组件自动隐藏。",
+    "version": "1.0.0",
+    "license": "MIT",
+    "author": "local",
+    "icon": "album",
+    "type": "widget",
+    "component": "./MediaCover.qml",
+    "capabilities": ["dankbar-widget"],
+    "requires_dms": ">=1.6.0"
+}

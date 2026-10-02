@@ -1,4 +1,5 @@
 {
+  "currentThemeName": "cyan",
   "matugenTargetMonitor": "eDP-1",
   "widgetColorMode": "colorful",
   "cornerRadius": 12,
@@ -7,6 +8,7 @@
   "springBounce": 0,
   "blurredWallpaperLayer": true,
   "blurWallpaperOnOverview": true,
+  "wallpaperBackgroundColorMode": "primary",
   "controlCenterShowMicPercent": true,
   "mediaUseAlbumArtAccent": true,
   "trayMaxVisibleItems": 2,
@@ -56,15 +58,15 @@
         "launcherButton",
         "workspaceSwitcher",
         "focusedWindow",
-        "systemTray"
+        "systemTray",
+        "zzpMediaCover"
       ],
       "centerWidgets": [
-        "music",
         "zzpClockWeather"
       ],
       "rightWidgets": [
-        "zzpPerfMonitor",
         "notificationButton",
+        "zzpPerfMonitor",
         "battery",
         "zzpUserAvatar"
       ],

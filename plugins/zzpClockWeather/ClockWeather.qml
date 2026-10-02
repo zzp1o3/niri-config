@@ -27,6 +27,9 @@ PluginComponent {
         onTriggered: root.now = new Date()
     }
 
+    // Vertical pill uses a slightly smaller scale so time + date + temperature
+    // fit short screens (eDP-1) without the bottom section covering the last row.
+    readonly property real vertTextSize: Theme.barTextSize(barThickness, (barConfig?.fontScale ?? 1) * 0.85, barConfig?.maximizeWidgetText)
     readonly property real textSize: Theme.barTextSize(barThickness, barConfig?.fontScale, barConfig?.maximizeWidgetText)
     readonly property real digitWidth: Math.round(textSize * 0.6)
     readonly property int iconSize: Theme.barIconSize(barThickness, -6, barConfig?.maximizeWidgetIcons, barConfig?.iconScale)
@@ -80,7 +83,7 @@ PluginComponent {
     component DigitCell: StyledText {
         required property string value
         text: value
-        font.pixelSize: root.textSize
+        font.pixelSize: root.vertTextSize
         color: Theme.widgetTextColor
         width: root.digitWidth
         horizontalAlignment: Text.AlignHCenter
@@ -106,19 +109,6 @@ PluginComponent {
                 DigitCell { value: root.minutesText.charAt(1) }
             }
 
-            Item {
-                width: root.digitWidth * 2
-                height: Theme.spacingM
-                anchors.horizontalCenter: parent.horizontalCenter
-
-                Rectangle {
-                    width: parent.width * 0.6
-                    height: 1
-                    color: Theme.outlineButton
-                    anchors.centerIn: parent
-                }
-            }
-
             Row {
                 spacing: 0
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -133,23 +123,9 @@ PluginComponent {
                 DigitCell { value: root.datePairB.charAt(1); color: Theme.primary }
             }
 
-            Item {
-                width: 1
-                height: Theme.spacingS
-                visible: root.weatherOn
-            }
-
-            DankIcon {
-                name: root.weatherIcon
-                size: root.iconSize
-                color: Theme.widgetIconColor
-                anchors.horizontalCenter: parent.horizontalCenter
-                visible: root.weatherOn
-            }
-
             StyledText {
                 text: root.weatherTempShort
-                font.pixelSize: root.textSize
+                font.pixelSize: root.vertTextSize
                 color: Theme.widgetTextColor
                 anchors.horizontalCenter: parent.horizontalCenter
                 visible: root.weatherOn

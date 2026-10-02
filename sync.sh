@@ -22,7 +22,7 @@ chmod +x "$R"/scripts/*
 
 # DMS 自研插件
 mkdir -p "$R/plugins"
-for p in zzpPerfMonitor zzpClockWeather zzpUserAvatar; do
+for p in zzpPerfMonitor zzpClockWeather zzpUserAvatar zzpMediaCover; do
     rm -rf "$R/plugins/$p"
     cp -r "$HOME/.config/DankMaterialShell/plugins/$p" "$R/plugins/"
 done
