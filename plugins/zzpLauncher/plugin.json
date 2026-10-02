@@ -1,0 +1,13 @@
+{
+    "id": "zzpLauncher",
+    "name": "启动器（可管理）",
+    "description": "内置启动器按钮的等价替换：同一 LauncherLogo（含你的自定义 logo 设置）、左键开应用抽屉、右键 niri 概览、悬浮以 hover 模式弹出应用抽屉。带显式 visible 绑定，可在 DMS 设置中正常隐藏/显示（内置 launcherButton 做不到）。",
+    "version": "1.0.0",
+    "license": "MIT",
+    "author": "local",
+    "icon": "apps",
+    "type": "widget",
+    "component": "./Launcher.qml",
+    "capabilities": ["dankbar-widget"],
+    "requires_dms": ">=1.6.0"
+}
