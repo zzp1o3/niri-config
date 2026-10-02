@@ -3,14 +3,15 @@ import Quickshell
 import Quickshell.Widgets
 import Quickshell.Services.Mpris
 import qs.Common
+import qs.Modules.DankBar.Widgets
 import qs.Services
 import qs.Widgets
 import qs.Modules.Plugins
 
 // Circular album-cover media pill. Shows the current track's artwork
-// (MPRIS, including browser media sessions like music.163.com); hovering
-// the cover fades in a play/pause control. Hides entirely when no media
-// player is active.
+// (MPRIS, including browser media sessions like music.163.com) with a live
+// Cava spectrum along the lower arc while playing. Hovering the cover fades
+// in a play/pause control. Hides entirely when no media player is active.
 // Left click        -> play / pause (whole cover is the hit target)
 // Right click       -> DankDash media tab
 PluginComponent {
@@ -93,14 +94,29 @@ PluginComponent {
             visible: art.status !== Image.Ready
         }
 
-        // Hover scrim + single play/pause control.
+        // Live Cava spectrum along the lower arc of the cover while playing.
+        AudioVisualization {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: Math.round(coverRoot.width * 0.10)
+            width: Math.round(coverRoot.width * 0.66)
+            height: Math.round(coverRoot.width * 0.26)
+            maxBarHeight: height
+            barColor: "#ffffff"
+            idleIconName: ""
+            opacity: 0.95
+            visible: root.isPlaying && art.status === Image.Ready
+        }
+
+        // Hover scrim + play/pause control (visual only; the MouseArea below
+        // owns clicks and hover so the hit target is the whole cover).
         Rectangle {
             id: scrim
 
             anchors.fill: parent
             radius: width / 2
             color: Qt.rgba(0, 0, 0, 0.42)
-            opacity: hoverHandler.hovered && root.playerAvailable ? 1 : 0
+            opacity: hoverArea.containsMouse && root.playerAvailable ? 1 : 0
             visible: opacity > 0
 
             Behavior on opacity {
@@ -128,17 +144,15 @@ PluginComponent {
             }
         }
 
-        // Whole cover toggles playback; generous hit target by design.
         MouseArea {
+            id: hoverArea
+
             anchors.fill: parent
+            hoverEnabled: true
             acceptedButtons: Qt.LeftButton
             enabled: root.playerAvailable
             cursorShape: Qt.PointingHandCursor
             onClicked: root.togglePlaying()
-        }
-
-        HoverHandler {
-            id: hoverHandler
         }
     }
 
