@@ -101,6 +101,8 @@
   - **正确做法（免重启、即时生效）**：设置 → 时间与天气 → 天气 → **Custom Location → 纬度 / 经度** 手动填：**纬度 27.95999，经度 116.33333**（open-meteo geocoding 里 "Fuzhou | Jiangxi" 的坐标，即抚州市区=临川区；注意 count=1 搜 "Fuzhou" 会命中福州福建 ✗）。该输入写入 `SessionData.weatherCoordinates` + `saveSettings()`，纯运行时写入，立刻生效。
   - 参考：open-meteo geocoding 直连可用（`dms dl`）✓；nominatim 只能经代理 ✓。
   - **"天气和手机不一样"是数据源固有差异，不是配置问题（2026-10-02 实测）**：同一地点同一时刻，open-meteo 各模型当前温度：ICON 20.0 / GFS 20.7 / JMA 22.7 / **CMA（中国气象局 GRAPES）24.0 / ECMWF 24.0 / 默认 best_match 24.3**。即 DMS 的值与 CMA、ECMWF 一致（差 0.3°C），离群的是 ICON/GFS。手机 App 多用国内源（墨迹/彩云/和风等，含本地订正与各自的体感算法），必然有差；天气现象（少云 vs 阴）在边界态各家也会判得不同。**DMS 无 provider/model 选项**（`WeatherService.getWeatherApiUrlForCoords()` 硬编码 api.open-meteo.com，参数固定）；要贴手机只能给插件加"独立取数"开关（代价：栏上与 DMS 天气页数字不一致）。
+
+  **"手机 19–22、阴" 的对照（2026-10-02 实测，抚州当日）**：手机显示的 19–22 与 **GFS 模型 19.5~22.0** 几乎逐位一致 ✓，而 DMS（ECMWF/best_match）给的是 21.3~25.4 ✗；各模型当日区间：GFS 19.5~22.0 / ICON 19.5~22.8 / JMA 20.0~22.9 / CMA 20.0~24.1 / ECMWF 21.3~24.5 / 默认 21.3~25.4。**结论：用户手机 ≈ GFS 系（且现象"阴"又匹配 ECMWF 系）→ 该 App 是多源混合（类似 Apple 天气），任何单一源都无法完全一致**；DMS 侧配置无误。若用户要求"贴手机"，唯一可行方案 = 给 zzpClockWeather 加独立取数 + 模型选择（如 `&models=gfs_seamless`），代价是与 DMS 天气页数字不一致。
 - gnome-control-center 在 niri 会话被拒（"only supported under GNOME and Unity"），包装脚本 `~/.local/bin/gnome-control-center`（注入 XDG_CURRENT_DESKTOP=GNOME）。
 - 电池百分比数字已由 `showBatteryPercent: false` 全局关闭（用户要求）；zzpBattery 设置页有同名开关可覆盖。
 - 自研插件历史版本全在 `~/niri-config` git 历史（`git show <commit>:<path>`）；`sync.sh` 现已覆盖全部 8 个插件 + 助手脚本 + AGENTS.md 本身。
