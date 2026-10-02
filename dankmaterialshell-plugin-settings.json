@@ -30,7 +30,8 @@
     "showPowerCharging": false,
     "showPowerDischarging": false,
     "showPercent": false,
-    "batteryStyle": "auto"
+    "batteryStyle": "auto",
+    "iconSize": "-6"
   },
   "zzpLauncher": {
     "enabled": true

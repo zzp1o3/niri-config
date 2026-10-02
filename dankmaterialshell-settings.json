@@ -1,10 +1,11 @@
 {
-  "currentThemeName": "blue",
+  "currentThemeName": "green",
   "matugenTargetMonitor": "DP-2",
   "widgetColorMode": "colorful",
   "cornerRadius": 12,
   "showWeekNumber": true,
   "audioShowStreamDevices": true,
+  "springBounce": 0,
   "enableRippleEffects": false,
   "motionEffect": 1,
   "blurEnabled": true,
@@ -21,7 +22,9 @@
   "appDrawerSectionViewModes": {
     "apps": "list"
   },
-  "iconThemeDark": "Bibata-Modern-Classic",
+  "iconThemeDark": "Yaru",
+  "iconThemeLight": "Yaru",
+  "iconThemePerMode": true,
   "cursorSettings": {
     "theme": "Bibata-Modern-Classic",
     "size": 24,
