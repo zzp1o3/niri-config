@@ -68,7 +68,8 @@ PluginComponent {
     readonly property var fanPresets: ({
             "quiet": [0, 0, 0, 5, 5, 10, 15, 20, 25, 30],
             "balanced": [5, 10, 15, 20, 25, 30, 40, 50, 60, 70],
-            "perf": [15, 25, 35, 45, 55, 65, 75, 85, 95, 100]
+            "perf": [15, 25, 35, 45, 55, 65, 75, 85, 95, 100],
+            "factory": [3, 6, 8, 11, 13, 16, 18, 21, 21, 21]
         })
 
     function statusText(s) {
@@ -415,19 +416,22 @@ PluginComponent {
 
         StyledText {
             width: 30
+            wrapMode: Text.NoWrap
             text: dashRow.label
             font.pixelSize: 11
             color: Theme.surfaceVariantText
         }
 
         UsageBar {
-            width: Math.max(24, dashRow.width - 30 - 8 - 132 - 8)
+            width: Math.max(20, dashRow.width - 30 - 8 - 150 - 8)
             height: 16
             pct: dashRow.pct < 0 ? 0 : dashRow.pct / 100
         }
 
         StyledText {
-            width: 132
+            // 2026-10-02：固定单行（GPU 瓦数行曾因超宽换行 → 面板高度跳变抖动，用户定位）
+            width: 150
+            wrapMode: Text.NoWrap
             horizontalAlignment: Text.AlignRight
             text: dashRow.value
             font.pixelSize: 11
@@ -485,7 +489,7 @@ PluginComponent {
                         DashRow {
                             label: "GPU"
                             pct: root.gpuUsage
-                            value: (root.gpuUsage >= 0 ? root.gpuUsage + "%" : "--") + " · " + (root.gpuClock > 0 ? root.gpuClock + "M" : "--") + " · " + Math.round(root.gpuTemp) + "°C · " + root.gpuPower.toFixed(1) + "W"
+                            value: (root.gpuUsage >= 0 ? root.gpuUsage + "%" : "--") + " · " + (root.gpuClock > 0 ? root.gpuClock + "M" : "--") + " · " + Math.round(root.gpuTemp) + "°C · " + Math.round(root.gpuPower) + "W"
                         }
 
                         StyledText {
@@ -664,7 +668,7 @@ PluginComponent {
 
                 SectionCaption {
                     visible: root.legionReady
-                    text: "风扇曲线（LenovoLegionLinux · 10 档速度点）"
+                    text: "风扇曲线（10 档速度点）"
                 }
 
                 Rectangle {
@@ -743,15 +747,19 @@ PluginComponent {
                         {
                             label: "性能",
                             selected: root.appliedPreset === "perf" && root.presetClose("perf")
+                        },
+                        {
+                            label: "出厂",
+                            selected: root.appliedPreset === "factory" && root.presetClose("factory")
                         }
                     ]
-                    onPick: i => root.applyFanPreset(i === 0 ? "quiet" : (i === 1 ? "balanced" : "perf"))
+                    onPick: i => root.applyFanPreset(i === 0 ? "quiet" : (i === 1 ? "balanced" : (i === 2 ? "perf" : "factory")))
                 }
 
                 StyledText {
                     width: parent.width
                     visible: root.legionReady
-                    text: "曲线为各温度点的风扇速度（0-100%，EC 按转速表取整）；切换性能模式会套用该档默认曲线，可用预设重设。"
+                    text: "曲线为各温度点的风扇速度（0-100%，EC 按转速表取整）。实测：曲线独立于性能模式——写入后立即生效并保持，切档位不会重置；点预设整条切换，「出厂」恢复原始曲线。"
                     font.pixelSize: 10
                     color: Theme.surfaceVariantText
                     wrapMode: Text.Wrap

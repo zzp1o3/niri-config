@@ -138,7 +138,7 @@
       "borderOpacity": 1,
       "borderThickness": 1,
       "widgetOutlineEnabled": false,
-      "widgetOutlineColor": "primary",
+      "widgetOutlineColor": "surfaceText",
       "widgetOutlineOpacity": 1,
       "widgetOutlineThickness": 1,
       "fontScale": 1.32,

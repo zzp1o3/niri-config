@@ -8,6 +8,13 @@
     "icon": "battery_full",
     "type": "widget",
     "component": "./Battery.qml",
-    "capabilities": ["dankbar-widget"],
-    "requires_dms": ">=1.6.0"
+    "capabilities": [
+        "dankbar-widget"
+    ],
+    "requires_dms": ">=1.6.0",
+    "settings": "./BatterySettings.qml",
+    "permissions": [
+        "settings_read",
+        "settings_write"
+    ]
 }

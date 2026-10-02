@@ -26,11 +26,38 @@ PluginComponent {
     visible: root.effectiveVisible
 
     // 与内置一致的样式判断：每部件覆盖（栏配置里的 batteryStyle 等）优先，其次全局设置
-    readonly property string styleValue: widgetData?.batteryStyle ?? SettingsData.batteryStyle ?? "icon"
+    readonly property string styleValue: {
+        const v = root.pluginData.batteryStyle;
+        if (v && v !== "auto")
+            return v;
+        return widgetData?.batteryStyle ?? SettingsData.batteryStyle ?? "icon";
+    }
     readonly property bool pillStyle: root.styleValue !== "icon"
     readonly property bool levelColors: (barConfig?.batteryColorMode ?? "theme") === "level"
-    readonly property bool showPercent: SettingsData.showBatteryPercent === true
-    readonly property string percentText: root.showPercent && BatteryService.batteryAvailable ? BatteryService.batteryLevel + "%" : ""
+
+    // 显示项（2026-10-02：可在 DMS 设置→插件→电池（可管理）里调；未设置时回退到全局设置，
+    // 与内置电池的 per-widget 选项语义一致）。优先级：插件设置 → 栏条目设置 → 全局。
+    readonly property bool showPercent: (pluginData.showPercent ?? SettingsData.showBatteryPercent) === true
+    readonly property bool showTime: (pluginData.showTime ?? SettingsData.showBatteryTime) === true
+    readonly property bool showPowerCharging: (pluginData.showPowerCharging ?? SettingsData.showBatteryPowerCharging) === true
+    readonly property bool showPowerDischarging: (pluginData.showPowerDischarging ?? SettingsData.showBatteryPowerDischarging) === true
+    readonly property bool showPower: BatteryService.isCharging ? root.showPowerCharging : root.showPowerDischarging
+    readonly property string displayText: {
+        const parts = [];
+        if (root.showPercent && BatteryService.batteryAvailable)
+            parts.push(BatteryService.batteryLevel + "%");
+        if (root.showTime && BatteryService.batteryAvailable) {
+            const t = BatteryService.formatTimeRemaining();
+            if (t)
+                parts.push(t);
+        }
+        if (root.showPower) {
+            const w = BatteryService.formatPowerRate(false);
+            if (w)
+                parts.push(w);
+        }
+        return parts.join(" ");
+    }
 
     // 与内置逐字相同的图标颜色规则
     function iconColor() {
@@ -45,10 +72,26 @@ PluginComponent {
         return Theme.widgetIconColor;
     }
 
-    // 点击 → 内置电池面板（与内置 battery 组件的行为一致）
+    // 点击 → 电池面板（锚定在组件上，与悬浮位置一致）。
+    // 2026-10-02 修复：原走 popoutService.toggleBattery(x,y,w,s,scr)（只传 5 个定位参数，
+    // 丢失 barPosition/barThickness 等栏上下文）→ 面板锚点错误（用户反馈"跟随鼠标"）。
+    function barPosition() {
+        return root.axis?.edge === "left" ? 2 : (root.axis?.edge === "right" ? 3 : (root.axis?.edge === "top" ? 0 : 1));
+    }
+
+    function positionBattery(pop, x, y, w, s, scr) {
+        pop.setTriggerPosition(x, y, w, s, scr, root.barPosition(), root.barThickness, root.barSpacing, root.barConfig);
+    }
+
     pillClickAction: (x, y, w, s, scr) => {
-        if (root.popoutService)
-            root.popoutService.toggleBattery(x, y, w, s, scr);
+        const pop = PopoutService.batteryPopout;
+        if (!pop) {
+            if (root.popoutService)
+                root.popoutService.toggleBattery(x, y, w, s, scr);
+            return;
+        }
+        root.positionBattery(pop, x, y, w, s, scr);
+        pop.toggle();
     }
 
     // 悬浮 → 电池面板以 hover 模式弹出、移开自动消失（对齐内置 battery 的悬浮行为；
@@ -128,12 +171,12 @@ PluginComponent {
                 }
 
                 StyledText {
-                    text: root.percentText
+                    text: root.displayText
                     font.pixelSize: Theme.barTextSize(root.barThickness, root.barConfig?.fontScale, root.barConfig?.maximizeWidgetText)
                     color: Theme.widgetTextColor
                     horizontalAlignment: Text.AlignHCenter
                     anchors.horizontalCenter: parent.horizontalCenter
-                    visible: root.percentText !== ""
+                    visible: root.displayText !== ""
                 }
             }
         }
