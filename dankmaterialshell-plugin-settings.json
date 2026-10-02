@@ -23,5 +23,8 @@
   },
   "zzpLegionTuner": {
     "enabled": true
+  },
+  "zzpBattery": {
+    "enabled": true
   }
 }

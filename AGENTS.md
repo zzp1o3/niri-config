@@ -27,6 +27,7 @@
 | zzpUserAvatar | UserAvatar.qml | 底部圆形头像（AccountsService），点击打开控制中心（`blurBarWindow.triggerControlCenter()`），并自注册为 `controlCenterButtonRef`（保证 `dms ipc call control-center toggle`/Mod+Shift+C 可用） |
 | zzpWorkspaceDots | WorkspaceDots.qml | macOS 风格工作区圆点（替代内置胶囊）：NiriService.allWorkspaces 过滤本屏、switchToWorkspace、圆点三态 |
 | zzpPerfMonitor | PerfMonitor.qml | CPU/内存/GPU 监控（竖排已紧凑化 ×0.78） |
+| zzpBattery | Battery.qml | 内置电池组件的**可管理替代**（2026-10-02 新建）：图标/环表与内置一致（同一 BatteryService/BatteryMeter），点击打开内置电池面板（`PopoutService.toggleBattery`），根带显式 `visible` 绑定 → 可在 DMS 设置中正常隐藏/显示。**注意：内置 `battery` 组件隐藏后无法恢复（见踩坑），需替换时把栏配置里的 `battery` 换成 `zzpBattery`（新增插件需重启 DMS 生效）** |
 | zzpLegionTuner | LegionTuner.qml | 拯救者性能调节（2026-10-02 重构）：**顶部仪表盘**（CPU 占用/频率/温度/功耗 RAPL、GPU 占用/频率/温度/功耗、风扇转速、电池）+ 性能模式三档（powerprofilesctl）+ 双屏刷新率 + 键盘背光/FnLock + 电池养护/USB 常供电/CPU Boost + **风扇曲线**（10 档速度点读写 + 安静/均衡/性能预设）。布局用等宽分段控件（SegmentRow）填满行宽。root 写入走免密助手 `~/.local/bin/zzp-legion-led`，回退 pkexec。**功耗墙 PL1/PL2/cTGP 控件已按用户要求移除**（能力仍在助手脚本里：pl1/pl2/ctgp）|
 
 栏布局（settings.json → barConfigs[0]）：leftWidgets=[launcherButton, zzpWorkspaceDots, focusedWindow, systemTray, zzpMediaCover]；centerWidgets=[zzpClockWeather]；rightWidgets=[notificationButton, zzpPerfMonitor, battery, zzpLegionTuner, zzpUserAvatar]。
@@ -53,6 +54,7 @@
 - **插件 pill 内容根必须是带显式 implicit 尺寸的 `Item`**：把 `Column`/`Row`（positioner）直接当 `verticalBarPill`/`horizontalBarPill` 的根，其 implicit 尺寸在 BasePill 的 Loader 托管下会塌缩为 0×0 → pill 只剩内边距高度（如 42×13）→ 深色反馈/悬浮命中/弹窗定位全错（内置 Clock.qml 就是 `Item { implicitWidth/implicitHeight: ... }` 包一层）。
 - **插件里给未声明的属性赋值会静默失败**（QML 运行时错误随 console 一起被吞）：`root.foo = x` 前必须先 `property var foo`。排查靠 Process 写 /tmp 日志。
 - **pill 内容里不要放 `hoverEnabled: true` 的 MouseArea**：它位于 BasePill 的 mouseArea（z:-1）之上，会把 hover 事件全部吃掉（深色反馈消失）。点击用 `pillClickAction`/`pillRightClickAction`，悬浮交给栏控制器 + 覆写 `triggerHoverPopout`。
+- **DMS 部件"隐藏/显示"的显隐恢复规则**（2026-10-02 实测确认）：属性**原本有 `visible` 绑定**的组件隐藏后能恢复（自研插件已全部加 `visible: root.effectiveVisible`，实测 5/5 成功）；**只有字面量 `visible: true` 或完全不写 `visible` 的组件会永久卡死**（内置 battery/launcherButton 都中招）。→ 新增自研组件务必带上显式 visible 绑定。
 - **DMS 部件"隐藏/显示"（设置→状态栏→部件行的眼睛按钮）有坑**（2026-10-02 实测）：它写 bar 配置里该部件的 `enabled`；恢复依赖 `WidgetHost` 里 `restoreMode: Binding.RestoreBinding` 的 visible Binding。而 DMS 运行时的 `DankBarContent.updateComponentMap()` **没有任何调用者（死代码）**，栏的部件映射不会因插件装卸刷新。**实测：切换显隐后部件会消失且不再恢复（内置 battery 也一样，与插件无关）——唯一可靠恢复是重启 DMS**：`systemctl --user restart dms-manual`（栏闪断几秒）。缓解：自研插件根都加了 `visible: root.effectiveVisible` 显式绑定（6 个插件，2026-10-02），让恢复时能回到该绑定。
 - **⛔ 绝对不要写 `platform_profile=max-power`**（2026-10-02 发现）：LenovoLegionLinux 源码 `model_lpcn`（本机 EC，R9000P/82WM）明确警告该档在本 EC 上会**瞬间硬断电（无关机流程，有丢数据风险）**，上游已将其从可用档位移除。插件已移除"性能拉满"按钮，助手脚本也会拒绝该参数——不要放开。
 - **PluginPopout**：面板高度绑定到 popoutContent 根 Item 的 `implicitHeight`，不设会变成 ~16px 细条。

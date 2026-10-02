@@ -41,6 +41,7 @@
   "batteryCriticalNotificationType": 0,
   "dockUseOverlayLayer": true,
   "osdAlwaysShowValue": true,
+  "osdMediaPlaybackEnabled": true,
   "osdPowerProfileEnabled": true,
   "screenPreferences": {
     "dock": [],
@@ -64,7 +65,7 @@
       "leftWidgets": [
         {
           "id": "launcherButton",
-          "enabled": true
+          "enabled": false
         },
         {
           "id": "zzpWorkspaceDots",
@@ -101,7 +102,8 @@
         {
           "id": "battery",
           "enabled": true,
-          "batteryStyle": "ring"
+          "batteryStyle": "ring",
+          "showBatteryPowerDischarging": false
         },
         {
           "id": "zzpLegionTuner",
