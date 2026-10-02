@@ -5,7 +5,6 @@
   "cornerRadius": 12,
   "showWeekNumber": true,
   "audioShowStreamDevices": true,
-  "syncComponentAnimationSpeeds": false,
   "enableRippleEffects": false,
   "motionEffect": 1,
   "blurEnabled": true,
