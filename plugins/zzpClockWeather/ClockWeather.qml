@@ -105,6 +105,76 @@ PluginComponent {
     }
 
     // ---------- bar pills ----------
+    // 悬浮面板：时间 + 日期 + 当前天气（与其他组件的悬浮面板机制一致，移开自动消失）
+    popoutWidth: 220
+    popoutHeight: 190
+
+    popoutContent: Component {
+        Item {
+            // PluginPopout 将面板高度绑定到根 Item 的 implicitHeight，必须显式给出
+            implicitHeight: panelColumn.implicitHeight + Theme.spacingM * 2
+
+            Column {
+                id: panelColumn
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: Theme.spacingM
+                spacing: 8
+
+                StyledText {
+                    text: root.hoursText + ":" + root.minutesText + root.ampmText
+                    font.pixelSize: 32
+                    color: Theme.primary
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                StyledText {
+                    text: Qt.formatDate(root.now, "yyyy年M月d日 dddd")
+                    font.pixelSize: 12
+                    color: Theme.surfaceVariantText
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                Rectangle {
+                    width: parent.width * 0.4
+                    height: 1
+                    color: Theme.outlineButton
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: root.weatherOn
+                }
+
+                Row {
+                    spacing: 10
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: root.weatherOn && root.weatherReady
+
+                    DankIcon {
+                        name: root.weatherIcon
+                        size: 26
+                        color: Theme.primary
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    StyledText {
+                        text: root.weatherTempFull
+                        font.pixelSize: 16
+                        color: Theme.surfaceText
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    StyledText {
+                        text: WeatherService.getWeatherCondition(WeatherService.weather.wCode)
+                        font.pixelSize: 12
+                        color: Theme.surfaceVariantText
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+            }
+        }
+    }
+
     verticalBarPill: Component {
         Column {
             spacing: 0
