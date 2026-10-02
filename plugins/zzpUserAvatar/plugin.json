@@ -1,0 +1,13 @@
+{
+    "id": "zzpUserAvatar",
+    "name": "用户头像",
+    "description": "在栏上显示用户头像（AccountsService/PortalService）。左键打开控制中心（替代内容区渲染空白的 controlCenterButton），右键打开概览页的用户信息卡片。",
+    "version": "1.0.0",
+    "license": "MIT",
+    "author": "local",
+    "icon": "person",
+    "type": "widget",
+    "component": "./UserAvatar.qml",
+    "capabilities": ["dankbar-widget"],
+    "requires_dms": ">=1.6.0"
+}

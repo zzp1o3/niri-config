@@ -1,0 +1,17 @@
+{
+  "dankKDEConnect": {
+    "enabled": false
+  },
+  "dankNotepadModule": {
+    "enabled": true
+  },
+  "zzpPerfMonitor": {
+    "enabled": true
+  },
+  "zzpClockWeather": {
+    "enabled": true
+  },
+  "zzpUserAvatar": {
+    "enabled": true
+  }
+}

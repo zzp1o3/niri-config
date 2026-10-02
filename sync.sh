@@ -22,13 +22,16 @@ chmod +x "$R"/scripts/*
 
 # DMS 自研插件
 mkdir -p "$R/plugins"
-for p in zzpPerfMonitor zzpClockWeather; do
+for p in zzpPerfMonitor zzpClockWeather zzpUserAvatar; do
     rm -rf "$R/plugins/$p"
     cp -r "$HOME/.config/DankMaterialShell/plugins/$p" "$R/plugins/"
 done
 
 # DMS 设置与插件锁
 cp "$HOME/.config/DankMaterialShell/settings.json" "$R/dankmaterialshell-settings.json"
+if [ -f "$HOME/.config/DankMaterialShell/plugin_settings.json" ]; then
+    cp "$HOME/.config/DankMaterialShell/plugin_settings.json" "$R/dankmaterialshell-plugin-settings.json"
+fi
 if [ -f "$HOME/.config/DankMaterialShell/plugins.lock.json" ]; then
     cp "$HOME/.config/DankMaterialShell/plugins.lock.json" "$R/dankmaterialshell-plugins.lock.json"
 fi
