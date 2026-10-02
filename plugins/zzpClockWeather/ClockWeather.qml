@@ -105,22 +105,40 @@ PluginComponent {
         return String(h12).padStart(2, "0");
     }
 
-    // locale-aware date order (same rule as the stock clock)
+    // 日期顺序（2026-10-02：对齐 DMS「时间与天气」设置）：
+    // 每部件 clockDateOrder > 全局 clockDateFormat > locale（内置同规则）
     readonly property bool dateFirst: {
+        if (widgetData?.clockDateOrder !== undefined)
+            return widgetData.clockDateOrder === "dateFirst";
+        const f = SettingsData.clockDateFormat;
+        if (f && f.length > 0)
+            return f.indexOf("d") >= 0 && (f.indexOf("M") < 0 || f.indexOf("d") < f.indexOf("M"));
         const fmt = I18n.locale().dateFormat(Locale.ShortFormat);
         return fmt.indexOf("d") < fmt.indexOf("M");
     }
+
+    // 秒 / 紧凑模式 / 温度单位（全部来自 DMS 设置，内置同款）
+    readonly property string secondsText: String(root.now.getSeconds()).padStart(2, "0")
+    readonly property bool showSeconds: SettingsData.showSeconds === true
+    readonly property bool compactMode: widgetData?.clockCompactMode !== undefined ? widgetData.clockCompactMode : SettingsData.clockCompactMode
     readonly property string dateMonth: String(root.now.getMonth() + 1).padStart(2, "0")
     readonly property string dateDay: String(root.now.getDate()).padStart(2, "0")
     readonly property string datePairA: root.dateFirst ? root.dateDay : root.dateMonth
     readonly property string datePairB: root.dateFirst ? root.dateMonth : root.dateDay
     readonly property string dateFlat: root.dateFirst ? (root.dateDay + "-" + root.dateMonth) : (root.dateMonth + "-" + root.dateDay)
 
+    // 横向布局的日期：DMS 设置了「日期格式」时按它渲染（内置同规则），否则用数字短格式
+    readonly property string dateText: {
+        if (SettingsData.clockDateFormat && SettingsData.clockDateFormat.length > 0)
+            return root.now.toLocaleDateString(I18n.locale(), SettingsData.clockDateFormat);
+        return root.dateFlat;
+    }
+
     // ---------- weather ----------
     readonly property bool weatherOn: SettingsData.weatherEnabled
     readonly property bool weatherReady: WeatherService.weather?.available ?? false
     readonly property string weatherIcon: WeatherService.getWeatherIcon(WeatherService.weather?.wCode ?? 0)
-    readonly property string weatherTempShort: root.weatherReady ? String(WeatherService.weather.temp) : "--"
+    readonly property string weatherTempShort: root.weatherReady ? String(SettingsData.useFahrenheit ? WeatherService.weather.tempF : WeatherService.weather.temp) : "--"
     readonly property string weatherTempFull: root.weatherReady ? WeatherService.currentTempText(false) : "--"
 
     Component.onCompleted: WeatherService.addRef()
@@ -245,6 +263,21 @@ PluginComponent {
                     DigitCell { value: root.minutesText.charAt(1) }
                 }
 
+                // 2026-10-02：DMS 设置「显示秒」时补第三组数字（内置竖向同款；默认关闭，外观不变）
+                Item {
+                    width: 1
+                    height: 2
+                    visible: root.showSeconds
+                }
+
+                Row {
+                    spacing: 0
+                    visible: root.showSeconds
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    DigitCell { value: root.secondsText.charAt(0) }
+                    DigitCell { value: root.secondsText.charAt(1) }
+                }
+
                 Item {
                     width: root.digitWidth * 2
                     height: Theme.spacingM
@@ -329,7 +362,7 @@ PluginComponent {
                 anchors.verticalCenter: parent.verticalCenter
 
                 StyledText {
-                    text: root.hoursText + ":" + root.minutesText + root.ampmText
+                    text: root.hoursText + ":" + root.minutesText + (root.showSeconds ? ":" + root.secondsText : "") + root.ampmText
                     font.pixelSize: root.textSize
                     color: Theme.widgetTextColor
                     anchors.verticalCenter: parent.verticalCenter
@@ -337,13 +370,15 @@ PluginComponent {
 
                 StyledText {
                     text: "•"
+                    visible: !root.compactMode
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.outlineButton
                     anchors.verticalCenter: parent.verticalCenter
                 }
 
                 StyledText {
-                    text: root.dateFlat
+                    text: root.dateText
+                    visible: !root.compactMode
                     font.pixelSize: root.textSize
                     color: Theme.primary
                     anchors.verticalCenter: parent.verticalCenter

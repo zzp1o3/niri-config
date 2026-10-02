@@ -35,6 +35,14 @@ PluginComponent {
     readonly property bool pillStyle: root.styleValue !== "icon"
     readonly property bool levelColors: (barConfig?.batteryColorMode ?? "theme") === "level"
 
+    // 图标/环大小（2026-10-02 用户要求：可调，当前偏大）。用户选项为偏移量，
+    // 对图标样式直接作用于 barIconSize；对环表样式通过 thickness 影响 ringDiameter（19/14×thickness）。
+    readonly property int sizeOffset: {
+        const v = parseInt(root.pluginData.iconSize);
+        return isNaN(v) ? 0 : Math.max(-12, Math.min(8, v));
+    }
+    readonly property int iconPx: Theme.barIconSize(root.barThickness, root.sizeOffset, root.barConfig?.maximizeWidgetIcons, root.barConfig?.iconScale)
+
     // 显示项（2026-10-02：可在 DMS 设置→插件→电池（可管理）里调；未设置时回退到全局设置，
     // 与内置电池的 per-widget 选项语义一致）。优先级：插件设置 → 栏条目设置 → 全局。
     readonly property bool showPercent: (pluginData.showPercent ?? SettingsData.showBatteryPercent) === true
@@ -154,7 +162,7 @@ PluginComponent {
                 DankIcon {
                     name: BatteryService.getBatteryIcon()
                     visible: !root.pillStyle
-                    size: Theme.barIconSize(root.barThickness, undefined, root.barConfig?.maximizeWidgetIcons, root.barConfig?.iconScale)
+                    size: root.iconPx
                     color: root.iconColor()
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
@@ -166,7 +174,7 @@ PluginComponent {
                     meterStyle: root.styleValue
                     levelColors: root.levelColors
                     maxDiameter: root.widgetThickness - Theme.spacingXS
-                    thickness: Theme.barIconSize(root.barThickness, undefined, root.barConfig?.maximizeWidgetIcons, root.barConfig?.iconScale)
+                    thickness: root.iconPx
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
 
@@ -201,7 +209,7 @@ PluginComponent {
                 DankIcon {
                     name: BatteryService.getBatteryIcon()
                     visible: !root.pillStyle
-                    size: Theme.barIconSize(root.barThickness, -4, root.barConfig?.maximizeWidgetIcons, root.barConfig?.iconScale)
+                    size: root.iconPx
                     color: root.iconColor()
                     anchors.verticalCenter: parent.verticalCenter
                 }

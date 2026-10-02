@@ -56,6 +56,31 @@ PluginSettings {
         ]
     }
 
+    SelectionSetting {
+        settingKey: "iconSize"
+        label: "图标 / 环表大小"
+        description: "调小可让组件更精致；对图标样式与环表（圆环）样式都生效"
+        defaultValue: "0"
+        options: [
+            {
+                label: "更小",
+                value: "-6"
+            },
+            {
+                label: "小",
+                value: "-3"
+            },
+            {
+                label: "默认",
+                value: "0"
+            },
+            {
+                label: "大",
+                value: "3"
+            }
+        ]
+    }
+
     ToggleSetting {
         settingKey: "showPercent"
         label: "显示电量百分比"

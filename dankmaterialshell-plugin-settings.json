@@ -25,7 +25,12 @@
     "enabled": true
   },
   "zzpBattery": {
-    "enabled": true
+    "enabled": true,
+    "showTime": false,
+    "showPowerCharging": false,
+    "showPowerDischarging": false,
+    "showPercent": false,
+    "batteryStyle": "ring"
   },
   "zzpLauncher": {
     "enabled": true
