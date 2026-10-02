@@ -9,6 +9,7 @@
   "blurredWallpaperLayer": true,
   "blurWallpaperOnOverview": true,
   "wallpaperBackgroundColorMode": "primary",
+  "showBatteryPercent": false,
   "controlCenterShowMicPercent": true,
   "mediaUseAlbumArtAccent": true,
   "trayMaxVisibleItems": 2,
@@ -57,7 +58,7 @@
       "showOnLastDisplay": true,
       "leftWidgets": [
         "launcherButton",
-        "workspaceSwitcher",
+        "zzpWorkspaceDots",
         "focusedWindow",
         "systemTray",
         "zzpMediaCover"

@@ -95,16 +95,27 @@ PluginComponent {
         }
 
         // Live Cava spectrum along the lower arc of the cover while playing.
+        // A dark backdrop keeps the bars readable on light cover art.
+        Rectangle {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: Math.round(coverRoot.width * 0.06)
+            width: Math.round(coverRoot.width * 0.74)
+            height: Math.round(coverRoot.width * 0.34)
+            radius: height / 2
+            color: Qt.rgba(0, 0, 0, 0.40)
+            visible: root.isPlaying && art.status === Image.Ready
+        }
+
         AudioVisualization {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
             anchors.bottomMargin: Math.round(coverRoot.width * 0.10)
-            width: Math.round(coverRoot.width * 0.66)
-            height: Math.round(coverRoot.width * 0.26)
+            width: Math.round(coverRoot.width * 0.62)
+            height: Math.round(coverRoot.width * 0.24)
             maxBarHeight: height
             barColor: "#ffffff"
             idleIconName: ""
-            opacity: 0.95
             visible: root.isPlaying && art.status === Image.Ready
         }
 

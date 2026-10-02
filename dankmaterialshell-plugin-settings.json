@@ -16,5 +16,8 @@
   },
   "zzpMediaCover": {
     "enabled": true
+  },
+  "zzpWorkspaceDots": {
+    "enabled": true
   }
 }
