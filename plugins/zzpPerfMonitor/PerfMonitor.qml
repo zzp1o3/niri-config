@@ -36,6 +36,10 @@ PluginComponent {
 
     readonly property int metricIconSize: Theme.barIconSize(barThickness, -4, barConfig?.maximizeWidgetIcons, barConfig?.iconScale)
     readonly property int metricFontSize: Theme.barTextSize(barThickness, barConfig?.fontScale, barConfig?.maximizeWidgetText)
+    // vertical pill runs 15% smaller so the bottom section clears the centered
+    // clock on the shorter eDP-1 (1067 logical px); horizontal pill unaffected.
+    readonly property int vertMetricIconSize: Math.max(12, Math.round(root.metricIconSize * 0.78))
+    readonly property int vertMetricFontSize: Math.max(10, Math.round(root.metricFontSize * 0.78))
 
     function usageColor(v) {
         if (v < 0)
@@ -179,7 +183,7 @@ PluginComponent {
 
     verticalBarPill: Component {
         Column {
-            spacing: Theme.spacingXS
+            spacing: 2
 
             Column {
                 visible: root.showCpu
@@ -188,7 +192,7 @@ PluginComponent {
 
                 DankIcon {
                     name: "memory"
-                    size: root.metricIconSize
+                    size: root.vertMetricIconSize
                     color: root.usageColor(root.cpuUsage)
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
@@ -196,7 +200,7 @@ PluginComponent {
                     isMonospace: false
                     text: Math.round(root.cpuUsage)
                     reserveText: "100"
-                    font.pixelSize: root.metricFontSize
+                    font.pixelSize: root.vertMetricFontSize
                     color: root.usageColor(root.cpuUsage)
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
@@ -209,7 +213,7 @@ PluginComponent {
 
                 DankIcon {
                     name: "developer_board"
-                    size: root.metricIconSize
+                    size: root.vertMetricIconSize
                     color: root.usageColor(root.memUsage)
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
@@ -217,7 +221,7 @@ PluginComponent {
                     isMonospace: false
                     text: Math.round(root.memUsage)
                     reserveText: "100"
-                    font.pixelSize: root.metricFontSize
+                    font.pixelSize: root.vertMetricFontSize
                     color: root.usageColor(root.memUsage)
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
@@ -230,7 +234,7 @@ PluginComponent {
 
                 DankIcon {
                     name: "speed"
-                    size: root.metricIconSize
+                    size: root.vertMetricIconSize
                     color: root.usageColor(root.gpuUsageDisplay)
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
@@ -238,7 +242,7 @@ PluginComponent {
                     isMonospace: false
                     text: root.gpuUsageDisplay < 0 ? "--" : Math.round(root.gpuUsageDisplay)
                     reserveText: "100"
-                    font.pixelSize: root.metricFontSize
+                    font.pixelSize: root.vertMetricFontSize
                     color: root.usageColor(root.gpuUsageDisplay)
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
