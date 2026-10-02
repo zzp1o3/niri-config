@@ -27,10 +27,11 @@
 | zzpUserAvatar | UserAvatar.qml | 底部圆形头像（AccountsService），点击打开控制中心（`blurBarWindow.triggerControlCenter()`），并自注册为 `controlCenterButtonRef`（保证 `dms ipc call control-center toggle`/Mod+Shift+C 可用） |
 | zzpWorkspaceDots | WorkspaceDots.qml | macOS 风格工作区圆点（替代内置胶囊）：NiriService.allWorkspaces 过滤本屏、switchToWorkspace、圆点三态 |
 | zzpPerfMonitor | PerfMonitor.qml | CPU/内存/GPU 监控（竖排已紧凑化 ×0.78） |
+| zzpLauncher | Launcher.qml | 内置启动器按钮的**可管理替代**（2026-10-02 新建）：同一 LauncherLogo/左键开应用抽屉/右键 niri 概览/悬浮 hover 弹应用抽屉，根带显式 visible 绑定 |
 | zzpBattery | Battery.qml | 内置电池组件的**可管理替代**（2026-10-02 新建）：图标/环表与内置一致（同一 BatteryService/BatteryMeter），点击打开内置电池面板（`PopoutService.toggleBattery`），根带显式 `visible` 绑定 → 可在 DMS 设置中正常隐藏/显示。**注意：内置 `battery` 组件隐藏后无法恢复（见踩坑），需替换时把栏配置里的 `battery` 换成 `zzpBattery`（新增插件需重启 DMS 生效）** |
 | zzpLegionTuner | LegionTuner.qml | 拯救者性能调节（2026-10-02 重构）：**顶部仪表盘**（CPU 占用/频率/温度/功耗 RAPL、GPU 占用/频率/温度/功耗、风扇转速、电池）+ 性能模式三档（powerprofilesctl）+ 双屏刷新率 + 键盘背光/FnLock + 电池养护/USB 常供电/CPU Boost + **风扇曲线**（10 档速度点读写 + 安静/均衡/性能预设）。布局用等宽分段控件（SegmentRow）填满行宽。root 写入走免密助手 `~/.local/bin/zzp-legion-led`，回退 pkexec。**功耗墙 PL1/PL2/cTGP 控件已按用户要求移除**（能力仍在助手脚本里：pl1/pl2/ctgp）|
 
-栏布局（settings.json → barConfigs[0]）：leftWidgets=[launcherButton, zzpWorkspaceDots, focusedWindow, systemTray, zzpMediaCover]；centerWidgets=[zzpClockWeather]；rightWidgets=[notificationButton, zzpPerfMonitor, battery, zzpLegionTuner, zzpUserAvatar]。
+栏布局（settings.json → barConfigs[0]）：leftWidgets=[zzpLauncher, zzpWorkspaceDots, focusedWindow, systemTray, zzpMediaCover]；centerWidgets=[zzpClockWeather]；rightWidgets=[notificationButton, zzpPerfMonitor, zzpBattery, zzpLegionTuner, zzpUserAvatar]。**2026-10-02：launcherButton→zzpLauncher、battery→zzpBattery 已替换**（内置版本在 DMS 显隐管理下有卡死缺陷，见踩坑；zzpBattery 保留每部件设置如 batteryStyle=ring）。
 
 ## ✅ 悬浮面板问题（2026-10-02 已解决，存档备查）
 

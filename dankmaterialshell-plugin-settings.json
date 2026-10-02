@@ -26,5 +26,8 @@
   },
   "zzpBattery": {
     "enabled": true
+  },
+  "zzpLauncher": {
+    "enabled": true
   }
 }

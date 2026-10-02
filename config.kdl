@@ -693,3 +693,5 @@ window-rule {
     }
 }
 include "dms/binds.kdl"
+include "dms/windowrules.kdl"
+include "dms/input.kdl"

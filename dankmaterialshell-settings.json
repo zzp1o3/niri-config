@@ -64,7 +64,7 @@
       "showOnLastDisplay": true,
       "leftWidgets": [
         {
-          "id": "launcherButton",
+          "id": "zzpLauncher",
           "enabled": false
         },
         {
@@ -100,7 +100,7 @@
           "enabled": true
         },
         {
-          "id": "battery",
+          "id": "zzpBattery",
           "enabled": true,
           "batteryStyle": "ring",
           "showBatteryPowerDischarging": false
