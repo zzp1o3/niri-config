@@ -46,6 +46,28 @@ PluginComponent {
         return root.playerAvailable ? root.lastValidArt : "";
     }
 
+    // ⚠ 2026-10-02：这两个属性此前漏声明，导致下方 pill 内容里的
+    // `root.vPillRoot = vPillItem` 静默失败（QML 赋值到不存在的属性，插件日志被吞），
+    // openDashTab 里 `if (!pill) return` 永远提前返回 → 悬浮面板完全弹不出来。
+    property var vPillRoot: null
+    property var hPillRoot: null
+
+    // 插件设置（DMS 设置 → 插件 → 媒体封面；见 MediaCoverSettings.qml）。
+    // 未设置任何项时全部取默认值，行为与加设置页之前完全一致。
+    readonly property int coverSize: {
+        const v = parseInt(pluginData.coverSize);
+        return (v === 20 || v === 24 || v === 28) ? v : 24;
+    }
+    readonly property bool revealPlayButton: pluginData.revealPlayButton !== false
+    readonly property bool hoverPopoutEnabled: pluginData.hoverPopout !== false
+    readonly property bool spectrumOpensPanel: pluginData.spectrumOpensPanel !== false
+
+    // 2026-10-02：给根组件显式 visible 绑定。DMS 的部件"隐藏/显示"是通过 WidgetHost 里一条
+    // Binding（when: 部件 enabled=false, property: "visible", value: false,
+    // restoreMode: RestoreBinding）实现的；此处显式绑定可保证恢复时回到本绑定
+    // （effectiveVisible 恒为 true，插件不设 visibilityCommand）→ 隐藏后再显示能正常回来。
+    visible: root.effectiveVisible
+
     // ── 滚轮调音量/切歌：与内置 Media.qml 逐字相同 ──
     property real scrollAccumulatorY: 0
     property real touchpadThreshold: 100
@@ -124,33 +146,62 @@ PluginComponent {
     // 现在悬浮也会弹出它：通过 PopoutManager.requestHoverPopout 挂进悬浮机制，
     // 移开组件和面板即自动消失。（旧的自绘专辑面板已按"注释不删除"原则移到文件末尾）
 
+    // 2026-10-02 修复：DankDash 弹窗处于"关闭动画中"时，PopoutManager 对 hover 请求会因
+    // `_isPopoutPresented()` 把 isClosing 也算作已展示而直接吞掉（不调用 _openPopout）→
+    // 悬浮面板不弹（典型场景：从时钟的悬浮面板移到媒体组件）。点击路径用 shouldBeVisible
+    // 判断所以不受影响。对策：检测 isClosing，等关闭动画结束再请求（短重试）。
+    property string _pendingTab: ""
+    property bool _pendingHover: false
+    property string _pendingTrigger: ""
+    property int _pendingRetries: 0
+
+    Timer {
+        id: _dashRetryTimer
+
+        interval: 120
+        onTriggered: root.openDashTabNow(root._pendingTab, root._pendingHover, root._pendingTrigger, root._pendingRetries)
+    }
+
     function openDashTab(tabId, hover, widgetHostId) {
         const loader = PopoutService.dankDashPopoutLoader;
         if (!loader)
             return;
         loader.active = true;
-        Qt.callLater(() => {
-            const dash = PopoutService.dankDashPopout;
-            if (!dash)
-                return;
-            dash.requestTab(tabId);
-            const pill = root.isVertical ? root.vPillRoot : root.hPillRoot;
-            if (!pill)
-                return;
-            const globalPos = pill.mapToItem(null, 0, 0);
-            const screen = root.parentScreen || Screen;
-            const barPosition = root.axis?.edge === "left" ? 2 : (root.axis?.edge === "right" ? 3 : (root.axis?.edge === "top" ? 0 : 1));
-            const pos = SettingsData.getPopupTriggerPosition(globalPos, screen, root.barThickness, pill.width, root.barSpacing, barPosition, root.barConfig);
-            dash.setTriggerPosition(pos.x, pos.y, pos.width, root.section, screen, barPosition, root.barThickness, root.barSpacing, root.barConfig);
-            if (hover)
-                PopoutManager.requestHoverPopout(dash, undefined, widgetHostId || root.pluginId);
-            else
-                PopoutManager.requestPopout(dash, undefined, root.pluginId);
-        });
+        Qt.callLater(() => root.openDashTabNow(tabId, hover, widgetHostId, 12));
     }
 
-    // 覆写基类：悬浮控制器悬停时会调用本函数 → 弹出 DankDash 媒体页
+    function openDashTabNow(tabId, hover, widgetHostId, retries) {
+        const dash = PopoutService.dankDashPopout;
+        if (!dash)
+            return;
+        if (dash.isClosing && retries > 0) {
+            root._pendingTab = tabId;
+            root._pendingHover = hover;
+            root._pendingTrigger = widgetHostId;
+            root._pendingRetries = retries - 1;
+            _dashRetryTimer.restart();
+            return;
+        }
+        dash.requestTab(tabId);
+        const pill = root.isVertical ? root.vPillRoot : root.hPillRoot;
+        if (!pill)
+            return;
+        const globalPos = pill.mapToItem(null, 0, 0);
+        const screen = root.parentScreen || Screen;
+        const barPosition = root.axis?.edge === "left" ? 2 : (root.axis?.edge === "right" ? 3 : (root.axis?.edge === "top" ? 0 : 1));
+        const pos = SettingsData.getPopupTriggerPosition(globalPos, screen, root.barThickness, pill.width, root.barSpacing, barPosition, root.barConfig);
+        dash.setTriggerPosition(pos.x, pos.y, pos.width, root.section, screen, barPosition, root.barThickness, root.barSpacing, root.barConfig);
+        if (hover)
+            PopoutManager.requestHoverPopout(dash, undefined, widgetHostId || root.pluginId);
+        else
+            PopoutManager.requestPopout(dash, undefined, root.pluginId);
+    }
+
+    // 覆写基类：悬浮控制器悬停时会调用本函数 → 弹出 DankDash 媒体页。
+    // 可用插件设置 hoverPopout 关闭悬浮弹面板（关闭后悬浮只显示深色反馈）。
     function triggerHoverPopout(widgetHostId) {
+        if (!root.hoverPopoutEnabled)
+            return;
         root.openDashTab("media", true, widgetHostId);
     }
 
@@ -158,9 +209,9 @@ PluginComponent {
         Item {
             id: vPillItem
 
-            // 与原版一致：无播放器时整个 pill 收起
-            implicitWidth: root.playerAvailable ? 24 : 0
-            implicitHeight: root.playerAvailable ? (20 + Theme.spacingXS + 24) : 0
+            // 与原版一致：无播放器时整个 pill 收起（封面边长取插件设置 coverSize，默认 24）
+            implicitWidth: root.playerAvailable ? root.coverSize : 0
+            implicitHeight: root.playerAvailable ? (20 + Theme.spacingXS + root.coverSize) : 0
             opacity: root.playerAvailable ? 1 : 0
 
             Behavior on implicitWidth {
@@ -179,7 +230,12 @@ PluginComponent {
 
             Component.onCompleted: root.vPillRoot = vPillItem
 
-            // 整块 pill 悬浮 → DankDash 媒体面板（移开后由 PopoutManager 悬浮跟踪关闭）
+            /* 旧版（2026-10-02 12:13–12:45）：整块 pill 自绘 hover 检测 → 打开媒体面板。
+             * 弃用原因：hoverEnabled 的 MouseArea 位于 BasePill 的 mouseArea（z:-1）之上，
+             * 会吃掉 hover 事件 → 深色反馈消失（且该 MouseArea 需要 root.vPillRoot 存在，
+             * 当时该属性漏声明，等同于完全失效）。
+             * 悬浮弹面板改走栏控制器（triggerHoverPopout），与内置组件机制一致。
+             * 恢复方法：取消本注释块。
             MouseArea {
                 anchors.fill: parent
                 hoverEnabled: true
@@ -189,6 +245,7 @@ PluginComponent {
                         root.openDashTab("media", true);
                 }
             }
+            */
 
             // 滚轮走 BasePill 的 wheel 信号转发（与内置 Media 一致）
             readonly property var _pill: {
@@ -237,14 +294,18 @@ PluginComponent {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: root.openMediaPopout()
+                        onClicked: {
+                            if (root.spectrumOpensPanel)
+                                root.openMediaPopout();
+                        }
                     }
                 }
 
                 // ── 本插件的唯一改动：原 24×24 播放/暂停圆钮 → 专辑封面，悬浮时浮现原按钮 ──
+                // 尺寸可由插件设置调整（coverSize，默认 24 = 原版）
                 Item {
-                    width: 24
-                    height: 24
+                    width: root.coverSize
+                    height: root.coverSize
                     anchors.horizontalCenter: parent.horizontalCenter
 
                     // 封面（圆形裁剪，替换原按钮的常驻外观）
@@ -274,7 +335,7 @@ PluginComponent {
                         // 无封面时的占位（与原按钮同款底色 + 音符）
                         DankIcon {
                             name: "music_note"
-                            size: 14
+                            size: Math.round(root.coverSize * 0.58)
                             color: Theme.primary
                             anchors.centerIn: parent
                             visible: art.status !== Image.Ready
@@ -285,9 +346,11 @@ PluginComponent {
                             id: originalButton
 
                             anchors.fill: parent
-                            radius: 12
+                            radius: height / 2
                             color: root.isPlaying ? Theme.primary : Theme.primaryHover
-                            opacity: coverHover.containsMouse ? 1 : 0
+                            // 悬停浮现：跟随 BasePill 的悬浮态（本 MouseArea 不能再开 hoverEnabled）；
+                            // 可用插件设置 revealPlayButton 关闭
+                            opacity: (root.revealPlayButton && (vPillItem._pill ? vPillItem._pill.isMouseHovered : false)) ? 1 : 0
                             visible: opacity > 0
 
                             Behavior on opacity {
@@ -300,7 +363,7 @@ PluginComponent {
                             DankIcon {
                                 anchors.centerIn: parent
                                 name: root.isPlaying ? "pause" : "play_arrow"
-                                size: 14
+                                size: Math.round(root.coverSize * 0.58)
                                 color: root.isPlaying ? Theme.background : Theme.primary
                             }
                         }
@@ -311,7 +374,9 @@ PluginComponent {
                         id: coverHover
 
                         anchors.fill: parent
-                        hoverEnabled: true
+                        // 2026-10-02：必须保持 false——hoverEnabled 会吃掉 BasePill 的 hover
+                        // 事件（深色反馈/悬浮弹面板失效）；点击不需要 hoverEnabled。
+                        hoverEnabled: false
                         acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                         cursorShape: Qt.PointingHandCursor
                         enabled: root.playerAvailable
@@ -337,11 +402,16 @@ PluginComponent {
         Item {
             id: hPillItem
 
-            implicitWidth: root.playerAvailable ? 24 + Theme.spacingS + 120 : 0
-            implicitHeight: root.playerAvailable ? 24 : 0
+            implicitWidth: root.playerAvailable ? root.coverSize + Theme.spacingS + 120 : 0
+            implicitHeight: root.playerAvailable ? root.coverSize : 0
             opacity: root.playerAvailable ? 1 : 0
 
-            // 整块 pill 悬浮 → DankDash 媒体面板（移开后由 PopoutManager 悬浮跟踪关闭）
+            /* 旧版（2026-10-02 12:13–12:45）：整块 pill 自绘 hover 检测 → 打开媒体面板。
+             * 弃用原因：hoverEnabled 的 MouseArea 位于 BasePill 的 mouseArea（z:-1）之上，
+             * 会吃掉 hover 事件 → 深色反馈消失（且该 MouseArea 需要 root.vPillRoot 存在，
+             * 当时该属性漏声明，等同于完全失效）。
+             * 悬浮弹面板改走栏控制器（triggerHoverPopout），与内置组件机制一致。
+             * 恢复方法：取消本注释块。
             MouseArea {
                 anchors.fill: parent
                 hoverEnabled: true
@@ -351,6 +421,7 @@ PluginComponent {
                         root.openDashTab("media", true);
                 }
             }
+            */
 
             Component.onCompleted: root.hPillRoot = hPillItem
 
@@ -380,8 +451,8 @@ PluginComponent {
                 visible: root.playerAvailable
 
                 Item {
-                    width: 24
-                    height: 24
+                    width: root.coverSize
+                    height: root.coverSize
                     anchors.verticalCenter: parent.verticalCenter
 
                     ClippingRectangle {
@@ -405,7 +476,7 @@ PluginComponent {
 
                         DankIcon {
                             name: "music_note"
-                            size: 14
+                            size: Math.round(root.coverSize * 0.58)
                             color: Theme.primary
                             anchors.centerIn: parent
                             visible: hArt.status !== Image.Ready
@@ -413,9 +484,11 @@ PluginComponent {
 
                         Rectangle {
                             anchors.fill: parent
-                            radius: 12
+                            radius: height / 2
                             color: root.isPlaying ? Theme.primary : Theme.primaryHover
-                            opacity: hCoverHover.containsMouse ? 1 : 0
+                            // 悬停浮现：跟随 BasePill 的悬浮态（本 MouseArea 不能再开 hoverEnabled）；
+                            // 可用插件设置 revealPlayButton 关闭
+                            opacity: (root.revealPlayButton && (hPillItem._pill ? hPillItem._pill.isMouseHovered : false)) ? 1 : 0
                             visible: opacity > 0
 
                             Behavior on opacity {
@@ -428,7 +501,7 @@ PluginComponent {
                             DankIcon {
                                 anchors.centerIn: parent
                                 name: root.isPlaying ? "pause" : "play_arrow"
-                                size: 14
+                                size: Math.round(root.coverSize * 0.58)
                                 color: root.isPlaying ? Theme.background : Theme.primary
                             }
                         }
@@ -438,7 +511,8 @@ PluginComponent {
                         id: hCoverHover
 
                         anchors.fill: parent
-                        hoverEnabled: true
+                        // 同竖排：hoverEnabled 会吃掉 BasePill 的 hover 事件，保持 false
+                        hoverEnabled: false
                         acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                         cursorShape: Qt.PointingHandCursor
                         enabled: root.playerAvailable
@@ -586,6 +660,9 @@ PluginComponent {
      * Image / DankIcon 占位 / AudioVisualization 叠层 / scrim / MouseArea。
      * 详细代码见 git 历史：plugins/zzpMediaCover/MediaCover.qml @ 4668cdf
      * ───────────────────────────────────────────────────────────────────────── */
+
+    // 临时诊断代码已于 2026-10-02 移除（定位结束后清理）。如再需调试，参考 AGENTS.md
+    // 「调试手段」一节：Quickshell.Io 的 Process 写 /tmp 文件（插件里 console.log 会被吞）。
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────

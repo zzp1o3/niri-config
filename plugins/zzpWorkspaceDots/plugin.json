@@ -1,0 +1,13 @@
+{
+    "id": "zzpWorkspaceDots",
+    "name": "工作区圆点",
+    "description": "macOS 风格的工作区圆点指示器：每个工作区一个圆点，活动工作区高亮放大，有窗口的工作区实心，点击切换，滚轮翻页。替代内置的胶囊形工作区切换器。",
+    "version": "1.0.0",
+    "license": "MIT",
+    "author": "local",
+    "icon": "apps",
+    "type": "widget",
+    "component": "./WorkspaceDots.qml",
+    "capabilities": ["dankbar-widget"],
+    "requires_dms": ">=1.6.0"
+}

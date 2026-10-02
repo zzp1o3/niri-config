@@ -8,6 +8,8 @@
     "icon": "album",
     "type": "widget",
     "component": "./MediaCover.qml",
+    "settings": "./MediaCoverSettings.qml",
     "capabilities": ["dankbar-widget"],
+    "permissions": ["settings_read", "settings_write"],
     "requires_dms": ">=1.6.0"
 }

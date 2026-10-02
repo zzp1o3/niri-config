@@ -15,7 +15,8 @@
     "enabled": true
   },
   "zzpMediaCover": {
-    "enabled": true
+    "enabled": true,
+    "coverSize": "28"
   },
   "zzpWorkspaceDots": {
     "enabled": true

@@ -19,6 +19,11 @@ import qs.Modules.Plugins
 PluginComponent {
     id: root
 
+    // 2026-10-02：显式 visible 绑定，保证 DMS 的部件"隐藏/显示"（WidgetHost 里 restoreMode
+    // 为 RestoreBinding 的 Binding）在恢复时回到本绑定 → 隐藏后再显示能正常回到栏上。
+    // （effectiveVisible 恒为 true：这些插件未配置 visibilityCommand）
+    visible: root.effectiveVisible
+
     // 旧写法已注释：pillClickAction 会被悬浮控制器在悬浮时误触发（悬浮=弹控制中心且不自动消失）。
     // 点击改为 pill 内容里的 MouseArea 处理，行为不变。
     // pillClickAction: () => {

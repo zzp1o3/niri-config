@@ -1,0 +1,9 @@
+#!/bin/sh
+# 拯救者 LED 控制（配合 sudoers NOPASSWD 白名单使用）
+# 用法: zzp-legion-led bl <0-2>   键盘背光
+#       zzp-legion-led fnlock <0|1>  Fn锁
+case "$1" in
+  bl) printf  "$2" > /sys/class/leds/platform::kbd_backlight/brightness ;;
+  fnlock) printf  "$2" > /sys/class/leds/platform::fnlock/brightness ;;
+  *) echo "usage: zzp-legion-led bl <0-2> | fnlock <0|1>" >&2; exit 1 ;;
+esac

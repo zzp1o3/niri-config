@@ -15,14 +15,19 @@ cp "$HOME/.config/niri/config.kdl" "$R/"
 mkdir -p "$R/dms"
 cp "$HOME"/.config/niri/dms/*.kdl "$R/dms/"
 
-# 辅助脚本
+# 辅助脚本（2026-10-02：补入拯救者免密助手，原版备份一并入库）
 mkdir -p "$R/scripts"
 cp "$HOME/.local/bin/niri-flow" "$HOME/.local/bin/niri-focus-cross" "$HOME/.local/bin/screenrec-toggle" "$R/scripts/"
+cp "$HOME/.local/bin/zzp-legion-led" "$HOME/.local/bin/zzp-legion-install-lll" "$R/scripts/"
+[ -f "$HOME/.local/bin/zzp-legion-led.orig-20261002" ] && cp "$HOME/.local/bin/zzp-legion-led.orig-20261002" "$R/scripts/"
 chmod +x "$R"/scripts/*
 
-# DMS 自研插件
+# AGENTS.md（AI 代理交接文档，2026-10-02 起入库）
+[ -f "$HOME/.config/niri/AGENTS.md" ] && cp "$HOME/.config/niri/AGENTS.md" "$R/AGENTS.md"
+
+# DMS 自研插件（2026-10-02：补齐 zzpWorkspaceDots / zzpLegionTuner）
 mkdir -p "$R/plugins"
-for p in zzpPerfMonitor zzpClockWeather zzpUserAvatar zzpMediaCover; do
+for p in zzpPerfMonitor zzpClockWeather zzpUserAvatar zzpMediaCover zzpWorkspaceDots zzpLegionTuner; do
     rm -rf "$R/plugins/$p"
     cp -r "$HOME/.config/DankMaterialShell/plugins/$p" "$R/plugins/"
 done

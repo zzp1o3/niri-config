@@ -1,0 +1,76 @@
+#!/bin/sh
+# 拯救者硬件控制助手（配合 sudoers NOPASSWD 白名单使用）。
+# ⚠ 白名单条目只认脚本路径、不认参数，本脚本以 root 运行，所有参数必须严格校验。
+# 2026-10-02 扩展（移植 LenovoLegionToolkit 的性能调节功能）：
+#   第一轮：fan/conservation/usb/profile/boost/gpu-pl（均为 ideapad_acpi / cpufreq 接口）
+#   第二轮（装 LenovoLegionLinux 驱动后）：fanfull/pl1/pl2/ctgp（legion_laptop 平台接口）
+# 原有 bl/fnlock 行为逐字不变（原版见本机备份 zzp-legion-led.orig-20261002）。
+# 用法:
+#   zzp-legion-led bl <0-2>             键盘背光
+#   zzp-legion-led fnlock <0|1>         Fn 锁
+#   zzp-legion-led fan <0-3>            风扇模式（ideapad_acpi fan_mode；本机 EC 不生效，保留）
+#   zzp-legion-led conservation <0|1>   电池养护模式
+#   zzp-legion-led usb <0|1>            USB 常供电
+#   zzp-legion-led profile <档位>       platform_profile: low-power|balanced|performance|custom
+#                                       （⚠ 绝不接受 max-power：本机 EC 会瞬间硬断电，详见插件注释）
+#   zzp-legion-led boost <0|1>          CPU Boost
+#   zzp-legion-led gpu-pl <5-140>       nvidia-smi 功耗上限（本机驱动忽略，保留）
+#   zzp-legion-led fanfull <0|1>        风扇全速（LenovoLegionLinux）
+#   zzp-legion-led pl1 <5-255>          CPU 长时功耗墙 PL1（驱动会按能力钳制）
+#   zzp-legion-led pl2 <5-255>          CPU 短时功耗墙 PL2（驱动保持 PL2>=PL1）
+#   zzp-legion-led ctgp <5-255>         GPU cTGP 功耗
+IDEA=/sys/devices/pci0000:00/0000:00:14.3/PNP0C09:00/VPC2004:00
+LEGION=/sys/devices/platform/legion
+USAGE="usage: zzp-legion-led bl <0-2> | fnlock <0|1> | fan <0-3> | conservation <0|1> | usb <0|1> | profile <low-power|balanced|performance> | boost <0|1> | gpu-pl <5-140> | fanfull <0|1> | pl1 <5-255> | pl2 <5-255> | ctgp <5-255> | cputemp <40-100>"
+
+# 数字范围校验：_num <值> <最小> <最大>
+_num() {
+  case "$1" in ''|*[!0-9]*) return 1 ;; esac
+  [ "$1" -ge "$2" ] && [ "$1" -le "$3" ]
+}
+
+case "$1" in
+  bl) case "$2" in 0|1|2) printf '%s' "$2" > /sys/class/leds/platform::kbd_backlight/brightness ;; *) echo "$USAGE" >&2; exit 1 ;; esac ;;
+  fnlock) case "$2" in 0|1) printf '%s' "$2" > /sys/class/leds/platform::fnlock/brightness ;; *) echo "$USAGE" >&2; exit 1 ;; esac ;;
+  fan) case "$2" in 0|1|2|3) printf '%s' "$2" > "$IDEA/fan_mode" ;; *) echo "$USAGE" >&2; exit 1 ;; esac ;;
+  conservation) case "$2" in 0|1) printf '%s' "$2" > "$IDEA/conservation_mode" ;; *) echo "$USAGE" >&2; exit 1 ;; esac ;;
+  usb) case "$2" in 0|1) printf '%s' "$2" > "$IDEA/usb_charging" ;; *) echo "$USAGE" >&2; exit 1 ;; esac ;;
+  profile) case "$2" in low-power|balanced|performance|custom) printf '%s' "$2" > /sys/firmware/acpi/platform_profile ;; *) echo "$USAGE" >&2; exit 1 ;; esac ;;
+          # 注意（2026-10-02）：拒绝 max-power —— LenovoLegionLinux 源码 model_lpcn（本机 EC）警告
+          # 该档会"瞬间硬断电（无关机流程）"，上游已从可用档位移除。不要放开这个限制。
+  boost) case "$2" in 0|1) printf '%s' "$2" > /sys/devices/system/cpu/cpufreq/boost ;; *) echo "$USAGE" >&2; exit 1 ;; esac ;;
+  gpu-pl) _num "$2" 5 140 && exec nvidia-smi -pl "$2" >/dev/null 2>&1
+          echo "$USAGE" >&2; exit 1 ;;
+  fanfull) case "$2" in 0|1) [ -w "$LEGION/fan_fullspeed" ] || { echo "fan_fullspeed 不可用（驱动未装？）" >&2; exit 1; }; printf '%s' "$2" > "$LEGION/fan_fullspeed" ;; *) echo "$USAGE" >&2; exit 1 ;; esac ;;
+  pl1) [ -w "$LEGION/cpu_longterm_powerlimit" ] || { echo "legion 接口不可用（驱动未装？）" >&2; exit 1; }; _num "$2" 5 255 || { echo "$USAGE" >&2; exit 1; }; printf '%s' "$2" > "$LEGION/cpu_longterm_powerlimit" ;;
+  pl2) [ -w "$LEGION/cpu_shortterm_powerlimit" ] || { echo "legion 接口不可用（驱动未装？）" >&2; exit 1; }; _num "$2" 5 255 || { echo "$USAGE" >&2; exit 1; }; printf '%s' "$2" > "$LEGION/cpu_shortterm_powerlimit" ;;
+  ctgp) [ -w "$LEGION/gpu_ctgp_powerlimit" ] || { echo "legion 接口不可用（驱动未装？）" >&2; exit 1; }; _num "$2" 5 255 || { echo "$USAGE" >&2; exit 1; }; printf '%s' "$2" > "$LEGION/gpu_ctgp_powerlimit" ;;
+  cputemp) [ -w "$LEGION/cpu_temperature_limit" ] || { echo "legion 接口不可用（驱动未装？）" >&2; exit 1; }; _num "$2" 40 100 || { echo "$USAGE" >&2; exit 1; }; printf '%s' "$2" > "$LEGION/cpu_temperature_limit" ;;
+  fanpoint) _num "$2" 1 10 || { echo "$USAGE" >&2; exit 1; }; _num "$3" 0 100 || { echo "$USAGE" >&2; exit 1; }
+            for h in /sys/class/hwmon/hwmon*; do
+              [ "$(cat $h/name 2>/dev/null)" = legion_hwmon ] || continue
+              printf '%s' "$3" > "$h/pwm1_auto_point$2_pwm" || exit 1
+              exit 0
+            done
+            echo "legion_hwmon 未找到" >&2; exit 1 ;;
+  rapl) cat /sys/class/powercap/intel-rapl:0/energy_uj ;;
+  fancurve) # 批量写整条风扇曲线：$2 = "v1 v2 ... v10"（0-100，空格分隔）
+            set -- $2
+            [ $# -eq 10 ] || { echo "$USAGE" >&2; exit 1; }
+            values=""
+            for v in "$@"; do
+              _num "$v" 0 100 || { echo "$USAGE" >&2; exit 1; }
+              values="$values$v "
+            done
+            for h in /sys/class/hwmon/hwmon*; do
+              [ "$(cat $h/name 2>/dev/null)" = legion_hwmon ] || continue
+              i=1
+              for v in $values; do
+                printf '%s' "$v" > "$h/pwm1_auto_point${i}_pwm" || exit 1
+                i=$((i + 1))
+              done
+              exit 0
+            done
+            echo "legion_hwmon 未找到" >&2; exit 1 ;;
+  *) echo "$USAGE" >&2; exit 1 ;;
+esac

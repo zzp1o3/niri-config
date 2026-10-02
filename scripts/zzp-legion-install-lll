@@ -1,0 +1,29 @@
+#!/bin/sh
+# LenovoLegionLinux 内核模块安装（DKMS 方式，本机 82WM / BIOS LPCN 在驱动支持列表内）。
+# 用法：sudo ~/.local/bin/zzp-legion-install-lll
+# 说明：5 步流程；编译失败会在安装前停止（不改动系统）；成功后模块立即加载，理论上无需重启。
+# 回滚：sudo dkms remove -m LenovoLegionLinux -v 1.0.0 && sudo rmmod legion_laptop（或重启）
+set -e
+SRC=/home/zzp/.local/src/LenovoLegionLinux
+KM="$SRC/kernel_module"
+
+echo "=== 1/5 安装构建依赖（gcc make dkms） ==="
+DEBIAN_FRONTEND=noninteractive apt-get install -y gcc make dkms
+
+echo "=== 2/5 检查源码 ==="
+[ -d "$KM" ] || { echo "✗ 源码不存在：$KM"; exit 1; }
+cd "$KM"
+
+echo "=== 3/5 编译内核模块（失败会在此停止，系统未改动） ==="
+make
+
+echo "=== 4/5 DKMS 安装并载入（make dkms） ==="
+make dkms
+
+echo "=== 5/5 验证 ==="
+[ -e /sys/devices/platform/legion ] && echo "✓ /sys/devices/platform/legion 已出现"
+lsmod | grep -q "^legion_laptop" && echo "✓ legion_laptop 已加载" || echo "⚠ 模块未加载"
+ls /sys/devices/platform/legion/ 2>/dev/null | head -20
+dmesg | grep -i legion_laptop | tail -6
+echo
+echo "完成。回到 AI 助手会话告知安装结果即可，后续风扇/功耗墙功能由助手接入插件。"

@@ -12,6 +12,11 @@ import qs.Modules.Plugins
 PluginComponent {
     id: root
 
+    // 2026-10-02：显式 visible 绑定，保证 DMS 的部件"隐藏/显示"（WidgetHost 里 restoreMode
+    // 为 RestoreBinding 的 Binding）在恢复时回到本绑定 → 隐藏后再显示能正常回到栏上。
+    // （effectiveVisible 恒为 true：这些插件未配置 visibilityCommand）
+    visible: root.effectiveVisible
+
     // ---------- live metrics ----------
     readonly property real cpuUsage: DgopService.cpuUsage ?? 0
     readonly property real memUsage: DgopService.memoryUsage ?? 0

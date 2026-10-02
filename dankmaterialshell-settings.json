@@ -1,21 +1,22 @@
 {
-  "currentThemeName": "cyan",
-  "matugenTargetMonitor": "eDP-1",
+  "currentThemeName": "blue",
+  "matugenTargetMonitor": "DP-2",
   "widgetColorMode": "colorful",
   "cornerRadius": 12,
   "audioShowStreamDevices": true,
-  "animationSpeed": 2,
   "springBounce": 0,
+  "enableRippleEffects": false,
   "blurredWallpaperLayer": true,
   "blurWallpaperOnOverview": true,
   "wallpaperBackgroundColorMode": "primary",
   "showBatteryPercent": false,
   "controlCenterShowMicPercent": true,
   "mediaUseAlbumArtAccent": true,
+  "appleMusicAnimatedArtEnabled": true,
   "trayMaxVisibleItems": 2,
   "appIdSubstitutions": [],
   "appDrawerSectionViewModes": {
-    "apps": "grid"
+    "apps": "list"
   },
   "cursorSettings": {
     "theme": "System Default",
@@ -34,6 +35,7 @@
     }
   },
   "fontWeight": 500,
+  "fontScale": 1.05,
   "textRenderType": 1,
   "textRenderQuality": 3,
   "batteryCriticalNotificationType": 0,
@@ -41,7 +43,10 @@
   "osdAlwaysShowValue": true,
   "osdPowerProfileEnabled": true,
   "screenPreferences": {
-    "dock": []
+    "dock": [],
+    "wallpaper": [
+      "all"
+    ]
   },
   "showOnLastDisplay": {
     "dock": false
@@ -57,21 +62,55 @@
       ],
       "showOnLastDisplay": true,
       "leftWidgets": [
-        "launcherButton",
-        "zzpWorkspaceDots",
-        "focusedWindow",
-        "systemTray",
-        "zzpMediaCover"
+        {
+          "id": "launcherButton",
+          "enabled": true
+        },
+        {
+          "id": "zzpWorkspaceDots",
+          "enabled": true
+        },
+        {
+          "id": "focusedWindow",
+          "enabled": true
+        },
+        {
+          "id": "systemTray",
+          "enabled": true
+        },
+        {
+          "id": "zzpMediaCover",
+          "enabled": true
+        }
       ],
       "centerWidgets": [
-        "zzpClockWeather"
+        {
+          "id": "zzpClockWeather",
+          "enabled": true
+        }
       ],
       "rightWidgets": [
-        "notificationButton",
-        "zzpPerfMonitor",
-        "battery",
-        "zzpLegionTuner",
-        "zzpUserAvatar"
+        {
+          "id": "notificationButton",
+          "enabled": true
+        },
+        {
+          "id": "zzpPerfMonitor",
+          "enabled": true
+        },
+        {
+          "id": "battery",
+          "enabled": true,
+          "batteryStyle": "ring"
+        },
+        {
+          "id": "zzpLegionTuner",
+          "enabled": true
+        },
+        {
+          "id": "zzpUserAvatar",
+          "enabled": true
+        }
       ],
       "spacing": 0,
       "innerPadding": 5,

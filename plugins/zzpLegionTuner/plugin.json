@@ -1,0 +1,13 @@
+{
+    "id": "zzpLegionTuner",
+    "name": "拯救者性能调节",
+    "description": "联想拯救者性能调节：性能模式切换（低功耗/均衡/性能，经 power-profiles-daemon 映射 platform_profile，参考 LenovoLegionLinux）+ 双屏刷新率切换（eDP-1 60/240Hz、DP-2 60/120/180Hz）。悬浮或点击图标打开面板。",
+    "version": "1.0.0",
+    "license": "MIT",
+    "author": "local",
+    "icon": "tune",
+    "type": "widget",
+    "component": "./LegionTuner.qml",
+    "capabilities": ["dankbar-widget"],
+    "requires_dms": ">=1.6.0"
+}
