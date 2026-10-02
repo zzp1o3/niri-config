@@ -114,106 +114,50 @@ PluginComponent {
         }
     }
 
-    // 频谱区点击：原版是打开内置媒体弹窗（DankDash 媒体页），插件内用 IPC 等价实现
+    // 频谱区点击：打开 DankDash 媒体页（与原版一致，直接复用同一个弹窗以支持悬浮跟踪）
+    // 旧 IPC 写法已注释：Quickshell.execDetached(["dms", "ipc", "call", "dash", "toggle", "media"])
     function openMediaPopout() {
-        Quickshell.execDetached(["dms", "ipc", "call", "dash", "toggle", "media"]);
+        root.openDashTab("media", false);
     }
 
-    // 悬浮面板：DMS 悬浮控制器检测到 popoutContent 后会在悬停时自动调用
-    // triggerHoverPopout（与其他组件的悬浮面板机制一致）
-    popoutWidth: 240
-    popoutHeight: 286
+    // 悬浮面板 = DMS 的 DankDash 弹窗（媒体页）——点击频谱打开的就是这个面板，
+    // 现在悬浮也会弹出它：通过 PopoutManager.requestHoverPopout 挂进悬浮机制，
+    // 移开组件和面板即自动消失。（旧的自绘专辑面板已按"注释不删除"原则移到文件末尾）
 
-    popoutContent: Component {
-        Item {
-            // PluginPopout 将面板高度绑定到根 Item 的 implicitHeight，必须显式给出
-            implicitHeight: panelColumn.implicitHeight + Theme.spacingM * 2
+    function openDashTab(tabId, hover, widgetHostId) {
+        const loader = PopoutService.dankDashPopoutLoader;
+        if (!loader)
+            return;
+        loader.active = true;
+        Qt.callLater(() => {
+            const dash = PopoutService.dankDashPopout;
+            if (!dash)
+                return;
+            dash.requestTab(tabId);
+            const pill = root.isVertical ? root.vPillRoot : root.hPillRoot;
+            if (!pill)
+                return;
+            const globalPos = pill.mapToItem(null, 0, 0);
+            const screen = root.parentScreen || Screen;
+            const barPosition = root.axis?.edge === "left" ? 2 : (root.axis?.edge === "right" ? 3 : (root.axis?.edge === "top" ? 0 : 1));
+            const pos = SettingsData.getPopupTriggerPosition(globalPos, screen, root.barThickness, pill.width, root.barSpacing, barPosition, root.barConfig);
+            dash.setTriggerPosition(pos.x, pos.y, pos.width, root.section, screen, barPosition, root.barThickness, root.barSpacing, root.barConfig);
+            if (hover)
+                PopoutManager.requestHoverPopout(dash, undefined, widgetHostId || root.pluginId);
+            else
+                PopoutManager.requestPopout(dash, undefined, root.pluginId);
+        });
+    }
 
-            Column {
-                id: panelColumn
-
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.margins: Theme.spacingM
-                spacing: Theme.spacingS
-
-                DankAlbumArt {
-                    width: 110
-                    height: 110
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    activePlayer: root.activePlayer
-                }
-
-                StyledText {
-                    width: parent.width
-                    text: root.activePlayer?.trackTitle || ""
-                    font.pixelSize: 15
-                    color: Theme.surfaceText
-                    elide: Text.ElideRight
-                    horizontalAlignment: Text.AlignHCenter
-                    visible: root.activePlayer?.trackTitle !== ""
-                }
-
-                StyledText {
-                    width: parent.width
-                    text: root.activePlayer?.trackArtist || ""
-                    font.pixelSize: 12
-                    color: Theme.surfaceVariantText
-                    elide: Text.ElideRight
-                    horizontalAlignment: Text.AlignHCenter
-                    visible: root.activePlayer?.trackArtist !== ""
-                }
-
-                Row {
-                    spacing: Theme.spacingM
-                    anchors.horizontalCenter: parent.horizontalCenter
-
-                    DankActionButton {
-                        buttonSize: 44
-                        iconName: "skip_previous"
-                        iconSize: 26
-                        iconColor: Theme.surfaceText
-                        anchors.verticalCenter: parent.verticalCenter
-                        onClicked: MprisController.previousOrRewind()
-                    }
-
-                    Rectangle {
-                        width: 52
-                        height: 52
-                        radius: width / 2
-                        color: root.isPlaying ? Theme.primary : Theme.primaryHover
-                        anchors.verticalCenter: parent.verticalCenter
-
-                        DankIcon {
-                            anchors.centerIn: parent
-                            name: root.isPlaying ? "pause" : "play_arrow"
-                            size: 30
-                            color: root.isPlaying ? Theme.background : Theme.primary
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.togglePlaying()
-                        }
-                    }
-
-                    DankActionButton {
-                        buttonSize: 44
-                        iconName: "skip_next"
-                        iconSize: 26
-                        iconColor: Theme.surfaceText
-                        anchors.verticalCenter: parent.verticalCenter
-                        onClicked: MprisController.next()
-                    }
-                }
-            }
-        }
+    // 覆写基类：悬浮控制器悬停时会调用本函数 → 弹出 DankDash 媒体页
+    function triggerHoverPopout(widgetHostId) {
+        root.openDashTab("media", true, widgetHostId);
     }
 
     verticalBarPill: Component {
         Item {
+            id: vPillItem
+
             // 与原版一致：无播放器时整个 pill 收起
             implicitWidth: root.playerAvailable ? 24 : 0
             implicitHeight: root.playerAvailable ? (20 + Theme.spacingXS + 24) : 0
@@ -230,6 +174,19 @@ PluginComponent {
                 NumberAnimation {
                     duration: Theme.shortDuration
                     easing.type: Theme.standardEasing
+                }
+            }
+
+            Component.onCompleted: root.vPillRoot = vPillItem
+
+            // 整块 pill 悬浮 → DankDash 媒体面板（移开后由 PopoutManager 悬浮跟踪关闭）
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                acceptedButtons: Qt.NoButton
+                onContainsMouseChanged: {
+                    if (containsMouse)
+                        root.openDashTab("media", true);
                 }
             }
 
@@ -378,9 +335,24 @@ PluginComponent {
     // 横排：简化版（当前仅使用竖排栏；如需内置横排完整样式请改用内置 music 组件）
     horizontalBarPill: Component {
         Item {
+            id: hPillItem
+
             implicitWidth: root.playerAvailable ? 24 + Theme.spacingS + 120 : 0
             implicitHeight: root.playerAvailable ? 24 : 0
             opacity: root.playerAvailable ? 1 : 0
+
+            // 整块 pill 悬浮 → DankDash 媒体面板（移开后由 PopoutManager 悬浮跟踪关闭）
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                acceptedButtons: Qt.NoButton
+                onContainsMouseChanged: {
+                    if (containsMouse)
+                        root.openDashTab("media", true);
+                }
+            }
+
+            Component.onCompleted: root.hPillRoot = hPillItem
 
             readonly property var _pill: {
                 let p = parent;
@@ -615,3 +587,102 @@ PluginComponent {
      * 详细代码见 git 历史：plugins/zzpMediaCover/MediaCover.qml @ 4668cdf
      * ───────────────────────────────────────────────────────────────────────── */
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * 旧版自绘媒体悬浮面板（2026-10-02，DankAlbumArt+控制按钮，已被 DankDash 媒体页悬浮面板取代）。
+ * 如需恢复：把下面整段作为 popoutContent: Component { ... } 放回插件根（并补 popoutWidth/Height）。
+ *     // 悬浮面板：DMS 悬浮控制器检测到 popoutContent 后会在悬停时自动调用
+ *     // triggerHoverPopout（与其他组件的悬浮面板机制一致）
+ *     popoutWidth: 240
+ *     popoutHeight: 286
+ * 
+ *     popoutContent: Component {
+ *         Item {
+ *             // PluginPopout 将面板高度绑定到根 Item 的 implicitHeight，必须显式给出
+ *             implicitHeight: panelColumn.implicitHeight + Theme.spacingM * 2
+ * 
+ *             Column {
+ *                 id: panelColumn
+ * 
+ *                 anchors.left: parent.left
+ *                 anchors.right: parent.right
+ *                 anchors.top: parent.top
+ *                 anchors.margins: Theme.spacingM
+ *                 spacing: Theme.spacingS
+ * 
+ *                 DankAlbumArt {
+ *                     width: 110
+ *                     height: 110
+ *                     anchors.horizontalCenter: parent.horizontalCenter
+ *                     activePlayer: root.activePlayer
+ *                 }
+ * 
+ *                 StyledText {
+ *                     width: parent.width
+ *                     text: root.activePlayer?.trackTitle || ""
+ *                     font.pixelSize: 15
+ *                     color: Theme.surfaceText
+ *                     elide: Text.ElideRight
+ *                     horizontalAlignment: Text.AlignHCenter
+ *                     visible: root.activePlayer?.trackTitle !== ""
+ *                 }
+ * 
+ *                 StyledText {
+ *                     width: parent.width
+ *                     text: root.activePlayer?.trackArtist || ""
+ *                     font.pixelSize: 12
+ *                     color: Theme.surfaceVariantText
+ *                     elide: Text.ElideRight
+ *                     horizontalAlignment: Text.AlignHCenter
+ *                     visible: root.activePlayer?.trackArtist !== ""
+ *                 }
+ * 
+ *                 Row {
+ *                     spacing: Theme.spacingM
+ *                     anchors.horizontalCenter: parent.horizontalCenter
+ * 
+ *                     DankActionButton {
+ *                         buttonSize: 44
+ *                         iconName: "skip_previous"
+ *                         iconSize: 26
+ *                         iconColor: Theme.surfaceText
+ *                         anchors.verticalCenter: parent.verticalCenter
+ *                         onClicked: MprisController.previousOrRewind()
+ *                     }
+ * 
+ *                     Rectangle {
+ *                         width: 52
+ *                         height: 52
+ *                         radius: width / 2
+ *                         color: root.isPlaying ? Theme.primary : Theme.primaryHover
+ *                         anchors.verticalCenter: parent.verticalCenter
+ * 
+ *                         DankIcon {
+ *                             anchors.centerIn: parent
+ *                             name: root.isPlaying ? "pause" : "play_arrow"
+ *                             size: 30
+ *                             color: root.isPlaying ? Theme.background : Theme.primary
+ *                         }
+ * 
+ *                         MouseArea {
+ *                             anchors.fill: parent
+ *                             cursorShape: Qt.PointingHandCursor
+ *                             onClicked: root.togglePlaying()
+ *                         }
+ *                     }
+ * 
+ *                     DankActionButton {
+ *                         buttonSize: 44
+ *                         iconName: "skip_next"
+ *                         iconSize: 26
+ *                         iconColor: Theme.surfaceText
+ *                         anchors.verticalCenter: parent.verticalCenter
+ *                         onClicked: MprisController.next()
+ *                     }
+ *                 }
+ *             }
+ *         }
+ *     }
+ * 
+ *
+ * ───────────────────────────────────────────────────────────────────────────── */

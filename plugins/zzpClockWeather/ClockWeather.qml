@@ -18,18 +18,31 @@ PluginComponent {
     // pillClickAction: () => Quickshell.execDetached(["dms", "ipc", "call", "dash", "toggle", "overview"])
     // pillRightClickAction: () => Quickshell.execDetached(["dms", "ipc", "call", "dash", "toggle", "weather"])
 
-    function openOverview() {
-        Quickshell.execDetached(["dms", "ipc", "call", "dash", "toggle", "overview"])
-    }
+    // 旧版 IPC 打开方式已注释：现统一走 openDashTab（同一个 DankDash 弹窗，支持悬浮跟踪）
+    // function openOverview() {
+    //     Quickshell.execDetached(["dms", "ipc", "call", "dash", "toggle", "overview"])
+    // }
+    //
+    // function openWeather() {
+    //     Quickshell.execDetached(["dms", "ipc", "call", "dash", "toggle", "weather"])
+    // }
 
-    function openWeather() {
-        Quickshell.execDetached(["dms", "ipc", "call", "dash", "toggle", "weather"])
-    }
+    property var vPillRoot: null
+    property var hPillRoot: null
 
     component PillClickArea: MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: Qt.PointingHandCursor
+        hoverEnabled: true
+
+        // 悬浮弹出 DankDash 面板（用自身 MouseArea 检测，覆盖整块组件；
+        // 移开后的自动消失交给 PopoutManager 的悬浮跟踪）
+        onContainsMouseChanged: {
+            if (containsMouse)
+                root.openDashTab("overview", true);
+        }
+
         onClicked: mouse => mouse.button === Qt.RightButton ? root.openWeather() : root.openOverview()
     }
 
@@ -105,79 +118,55 @@ PluginComponent {
     }
 
     // ---------- bar pills ----------
-    // 悬浮面板：时间 + 日期 + 当前天气（与其他组件的悬浮面板机制一致，移开自动消失）
-    popoutWidth: 220
-    popoutHeight: 190
+    // 悬浮面板 = DMS 的 DankDash 弹窗（概览页）——与点击打开的是同一个面板。
+    // 通过 PopoutManager.requestHoverPopout 挂进悬浮机制：移开组件和面板即自动消失。
+    // （旧的自绘天气小面板已按"注释不删除"原则移到本文件末尾注释块）
 
-    popoutContent: Component {
-        Item {
-            // PluginPopout 将面板高度绑定到根 Item 的 implicitHeight，必须显式给出
-            implicitHeight: panelColumn.implicitHeight + Theme.spacingM * 2
+    function openDashTab(tabId, hover, widgetHostId) {
+        const loader = PopoutService.dankDashPopoutLoader;
+        if (!loader)
+            return;
+        loader.active = true;
+        Qt.callLater(() => {
+            const dash = PopoutService.dankDashPopout;
+            if (!dash)
+                return;
+            dash.requestTab(tabId);
+            const pill = root.isVertical ? root.vPillRoot : root.hPillRoot;
+            if (!pill)
+                return;
+            const globalPos = pill.mapToItem(null, 0, 0);
+            const screen = root.parentScreen || Screen;
+            const barPosition = root.axis?.edge === "left" ? 2 : (root.axis?.edge === "right" ? 3 : (root.axis?.edge === "top" ? 0 : 1));
+            const pos = SettingsData.getPopupTriggerPosition(globalPos, screen, root.barThickness, pill.width, root.barSpacing, barPosition, root.barConfig);
+            dash.setTriggerPosition(pos.x, pos.y, pos.width, root.section, screen, barPosition, root.barThickness, root.barSpacing, root.barConfig);
+            if (hover)
+                PopoutManager.requestHoverPopout(dash, undefined, widgetHostId || root.pluginId);
+            else
+                PopoutManager.requestPopout(dash, undefined, root.pluginId);
+        });
+    }
 
-            Column {
-                id: panelColumn
+    // 覆写基类：悬浮控制器悬停时会调用本函数 → 弹出 DankDash 概览页
+    function triggerHoverPopout(widgetHostId) {
+        root.openDashTab("overview", true, widgetHostId);
+    }
 
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.margins: Theme.spacingM
-                spacing: 8
+    function openOverview() {
+        root.openDashTab("overview", false);
+    }
 
-                StyledText {
-                    text: root.hoursText + ":" + root.minutesText + root.ampmText
-                    font.pixelSize: 32
-                    color: Theme.primary
-                    anchors.horizontalCenter: parent.horizontalCenter
-                }
-
-                StyledText {
-                    text: Qt.formatDate(root.now, "yyyy年M月d日 dddd")
-                    font.pixelSize: 12
-                    color: Theme.surfaceVariantText
-                    anchors.horizontalCenter: parent.horizontalCenter
-                }
-
-                Rectangle {
-                    width: parent.width * 0.4
-                    height: 1
-                    color: Theme.outlineButton
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    visible: root.weatherOn
-                }
-
-                Row {
-                    spacing: 10
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    visible: root.weatherOn && root.weatherReady
-
-                    DankIcon {
-                        name: root.weatherIcon
-                        size: 26
-                        color: Theme.primary
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-
-                    StyledText {
-                        text: root.weatherTempFull
-                        font.pixelSize: 16
-                        color: Theme.surfaceText
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-
-                    StyledText {
-                        text: WeatherService.getWeatherCondition(WeatherService.weather.wCode)
-                        font.pixelSize: 12
-                        color: Theme.surfaceVariantText
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                }
-            }
-        }
+    function openWeather() {
+        root.openDashTab("weather", false);
     }
 
     verticalBarPill: Component {
         Column {
+            id: vPillItem
+
             spacing: 0
+
+            Component.onCompleted: root.vPillRoot = vPillItem
 
             PillClickArea {}
 
@@ -248,7 +237,11 @@ PluginComponent {
 
     horizontalBarPill: Component {
         Row {
+            id: hPillItem
+
             spacing: Theme.spacingS
+
+            Component.onCompleted: root.hPillRoot = hPillItem
 
             PillClickArea {}
 
@@ -297,3 +290,79 @@ PluginComponent {
         }
     }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * 旧版自绘天气悬浮小面板（2026-10-02，已被 DankDash 概览悬浮面板取代）。
+ * 如需恢复：把下面整段作为 popoutContent: Component { ... } 放回插件根。
+ *     // 悬浮面板：时间 + 日期 + 当前天气（与其他组件的悬浮面板机制一致，移开自动消失）
+ *     popoutWidth: 220
+ *     popoutHeight: 190
+ * 
+ *     popoutContent: Component {
+ *         Item {
+ *             // PluginPopout 将面板高度绑定到根 Item 的 implicitHeight，必须显式给出
+ *             implicitHeight: panelColumn.implicitHeight + Theme.spacingM * 2
+ * 
+ *             Column {
+ *                 id: panelColumn
+ * 
+ *                 anchors.left: parent.left
+ *                 anchors.right: parent.right
+ *                 anchors.top: parent.top
+ *                 anchors.margins: Theme.spacingM
+ *                 spacing: 8
+ * 
+ *                 StyledText {
+ *                     text: root.hoursText + ":" + root.minutesText + root.ampmText
+ *                     font.pixelSize: 32
+ *                     color: Theme.primary
+ *                     anchors.horizontalCenter: parent.horizontalCenter
+ *                 }
+ * 
+ *                 StyledText {
+ *                     text: Qt.formatDate(root.now, "yyyy年M月d日 dddd")
+ *                     font.pixelSize: 12
+ *                     color: Theme.surfaceVariantText
+ *                     anchors.horizontalCenter: parent.horizontalCenter
+ *                 }
+ * 
+ *                 Rectangle {
+ *                     width: parent.width * 0.4
+ *                     height: 1
+ *                     color: Theme.outlineButton
+ *                     anchors.horizontalCenter: parent.horizontalCenter
+ *                     visible: root.weatherOn
+ *                 }
+ * 
+ *                 Row {
+ *                     spacing: 10
+ *                     anchors.horizontalCenter: parent.horizontalCenter
+ *                     visible: root.weatherOn && root.weatherReady
+ * 
+ *                     DankIcon {
+ *                         name: root.weatherIcon
+ *                         size: 26
+ *                         color: Theme.primary
+ *                         anchors.verticalCenter: parent.verticalCenter
+ *                     }
+ * 
+ *                     StyledText {
+ *                         text: root.weatherTempFull
+ *                         font.pixelSize: 16
+ *                         color: Theme.surfaceText
+ *                         anchors.verticalCenter: parent.verticalCenter
+ *                     }
+ * 
+ *                     StyledText {
+ *                         text: WeatherService.getWeatherCondition(WeatherService.weather.wCode)
+ *                         font.pixelSize: 12
+ *                         color: Theme.surfaceVariantText
+ *                         anchors.verticalCenter: parent.verticalCenter
+ *                     }
+ *                 }
+ *             }
+ *         }
+ *     }
+ * 
+ *
+ * ───────────────────────────────────────────────────────────────────────────── */
