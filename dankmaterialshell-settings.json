@@ -70,6 +70,7 @@
         "notificationButton",
         "zzpPerfMonitor",
         "battery",
+        "zzpLegionTuner",
         "zzpUserAvatar"
       ],
       "spacing": 0,

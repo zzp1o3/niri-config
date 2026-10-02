@@ -19,5 +19,8 @@
   },
   "zzpWorkspaceDots": {
     "enabled": true
+  },
+  "zzpLegionTuner": {
+    "enabled": true
   }
 }

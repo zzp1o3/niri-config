@@ -119,6 +119,92 @@ PluginComponent {
         Quickshell.execDetached(["dms", "ipc", "call", "dash", "toggle", "media"]);
     }
 
+    // 悬浮面板：DMS 悬浮控制器检测到 popoutContent 后会在悬停时自动调用
+    // triggerHoverPopout（与其他组件的悬浮面板机制一致）
+    popoutWidth: 240
+    popoutHeight: 286
+
+    popoutContent: Component {
+        Item {
+            Column {
+                anchors.fill: parent
+                anchors.margins: Theme.spacingM
+                spacing: Theme.spacingS
+
+                DankAlbumArt {
+                    width: 110
+                    height: 110
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    activePlayer: root.activePlayer
+                }
+
+                StyledText {
+                    width: parent.width
+                    text: root.activePlayer?.trackTitle || ""
+                    font.pixelSize: 15
+                    color: Theme.surfaceText
+                    elide: Text.ElideRight
+                    horizontalAlignment: Text.AlignHCenter
+                    visible: root.activePlayer?.trackTitle !== ""
+                }
+
+                StyledText {
+                    width: parent.width
+                    text: root.activePlayer?.trackArtist || ""
+                    font.pixelSize: 12
+                    color: Theme.surfaceVariantText
+                    elide: Text.ElideRight
+                    horizontalAlignment: Text.AlignHCenter
+                    visible: root.activePlayer?.trackArtist !== ""
+                }
+
+                Row {
+                    spacing: Theme.spacingM
+                    anchors.horizontalCenter: parent.horizontalCenter
+
+                    DankActionButton {
+                        buttonSize: 44
+                        iconName: "skip_previous"
+                        iconSize: 26
+                        iconColor: Theme.surfaceText
+                        anchors.verticalCenter: parent.verticalCenter
+                        onClicked: MprisController.previousOrRewind()
+                    }
+
+                    Rectangle {
+                        width: 52
+                        height: 52
+                        radius: width / 2
+                        color: root.isPlaying ? Theme.primary : Theme.primaryHover
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        DankIcon {
+                            anchors.centerIn: parent
+                            name: root.isPlaying ? "pause" : "play_arrow"
+                            size: 30
+                            color: root.isPlaying ? Theme.background : Theme.primary
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.togglePlaying()
+                        }
+                    }
+
+                    DankActionButton {
+                        buttonSize: 44
+                        iconName: "skip_next"
+                        iconSize: 26
+                        iconColor: Theme.surfaceText
+                        anchors.verticalCenter: parent.verticalCenter
+                        onClicked: MprisController.next()
+                    }
+                }
+            }
+        }
+    }
+
     verticalBarPill: Component {
         Item {
             // 与原版一致：无播放器时整个 pill 收起
@@ -140,9 +226,26 @@ PluginComponent {
                 }
             }
 
+            // 滚轮走 BasePill 的 wheel 信号转发（与内置 Media 一致）
+            readonly property var _pill: {
+                let p = parent;
+                while (p && p.enableBackgroundHover === undefined)
+                    p = p.parent;
+                return p;
+            }
+
+            Connections {
+                target: _pill
+                function onWheel(wheelEvent) {
+                    root.handleWheel(wheelEvent);
+                }
+            }
+
+            /* WheelHandler 方案在此场景不触发，弃用——保留备查：
             WheelHandler {
                 onWheel: event => root.handleWheel(event)
             }
+            */
 
             Column {
                 spacing: Theme.spacingXS
@@ -272,9 +375,25 @@ PluginComponent {
             implicitHeight: root.playerAvailable ? 24 : 0
             opacity: root.playerAvailable ? 1 : 0
 
+            readonly property var _pill: {
+                let p = parent;
+                while (p && p.enableBackgroundHover === undefined)
+                    p = p.parent;
+                return p;
+            }
+
+            Connections {
+                target: _pill
+                function onWheel(wheelEvent) {
+                    root.handleWheel(wheelEvent);
+                }
+            }
+
+            /* WheelHandler 方案在此场景不触发，弃用——保留备查：
             WheelHandler {
                 onWheel: event => root.handleWheel(event)
             }
+            */
 
             Row {
                 anchors.verticalCenter: parent.verticalCenter
