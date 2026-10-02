@@ -53,6 +53,7 @@
 - **插件 pill 内容根必须是带显式 implicit 尺寸的 `Item`**：把 `Column`/`Row`（positioner）直接当 `verticalBarPill`/`horizontalBarPill` 的根，其 implicit 尺寸在 BasePill 的 Loader 托管下会塌缩为 0×0 → pill 只剩内边距高度（如 42×13）→ 深色反馈/悬浮命中/弹窗定位全错（内置 Clock.qml 就是 `Item { implicitWidth/implicitHeight: ... }` 包一层）。
 - **插件里给未声明的属性赋值会静默失败**（QML 运行时错误随 console 一起被吞）：`root.foo = x` 前必须先 `property var foo`。排查靠 Process 写 /tmp 日志。
 - **pill 内容里不要放 `hoverEnabled: true` 的 MouseArea**：它位于 BasePill 的 mouseArea（z:-1）之上，会把 hover 事件全部吃掉（深色反馈消失）。点击用 `pillClickAction`/`pillRightClickAction`，悬浮交给栏控制器 + 覆写 `triggerHoverPopout`。
+- **DMS 部件"隐藏/显示"（设置→状态栏→部件行的眼睛按钮）有坑**（2026-10-02 实测）：它写 bar 配置里该部件的 `enabled`；恢复依赖 `WidgetHost` 里 `restoreMode: Binding.RestoreBinding` 的 visible Binding。而 DMS 运行时的 `DankBarContent.updateComponentMap()` **没有任何调用者（死代码）**，栏的部件映射不会因插件装卸刷新。**实测：切换显隐后部件会消失且不再恢复（内置 battery 也一样，与插件无关）——唯一可靠恢复是重启 DMS**：`systemctl --user restart dms-manual`（栏闪断几秒）。缓解：自研插件根都加了 `visible: root.effectiveVisible` 显式绑定（6 个插件，2026-10-02），让恢复时能回到该绑定。
 - **⛔ 绝对不要写 `platform_profile=max-power`**（2026-10-02 发现）：LenovoLegionLinux 源码 `model_lpcn`（本机 EC，R9000P/82WM）明确警告该档在本 EC 上会**瞬间硬断电（无关机流程，有丢数据风险）**，上游已将其从可用档位移除。插件已移除"性能拉满"按钮，助手脚本也会拒绝该参数——不要放开。
 - **PluginPopout**：面板高度绑定到 popoutContent 根 Item 的 `implicitHeight`，不设会变成 ~16px 细条。
 - **滚轮**：普通 QML Item 没有 `onWheel`；`WheelHandler` 在 pill 内容里不触发；正确做法是 Connections 连 BasePill 的 `wheel` 信号（从 content 往 parent 链找 `enableBackgroundHover !== undefined` 的祖先即 BasePill）。
