@@ -27,7 +27,7 @@ chmod +x "$R"/scripts/*
 
 # DMS 自研插件（2026-10-02：补齐 zzpWorkspaceDots / zzpLegionTuner）
 mkdir -p "$R/plugins"
-for p in zzpPerfMonitor zzpClockWeather zzpUserAvatar zzpMediaCover zzpWorkspaceDots zzpLegionTuner; do
+for p in zzpPerfMonitor zzpClockWeather zzpUserAvatar zzpMediaCover zzpWorkspaceDots zzpLegionTuner zzpBattery; do
     rm -rf "$R/plugins/$p"
     cp -r "$HOME/.config/DankMaterialShell/plugins/$p" "$R/plugins/"
 done

@@ -1,0 +1,13 @@
+{
+    "id": "zzpBattery",
+    "name": "电池（可管理）",
+    "description": "内置电池组件的等价替换：图标/环表样式与内置一致（同一 BatteryService 与 BatteryMeter），点击打开内置电池面板。带显式 visible 绑定，可在 DMS 设置中正常隐藏/显示（内置 battery 组件做不到，隐藏后无法恢复）。",
+    "version": "1.0.0",
+    "license": "MIT",
+    "author": "local",
+    "icon": "battery_full",
+    "type": "widget",
+    "component": "./Battery.qml",
+    "capabilities": ["dankbar-widget"],
+    "requires_dms": ">=1.6.0"
+}
