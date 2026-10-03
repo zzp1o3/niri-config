@@ -23,7 +23,7 @@
 | `dankmaterialshell-settings.json` | `~/.config/DankMaterialShell/settings.json` | DMS 全部设置（栏布局、托盘等） |
 | `dankmaterialshell-plugins.lock.json` | `~/.config/DankMaterialShell/plugins.lock.json` | DMS 插件清单 |
 | `keyd-default.conf` | `/etc/keyd/default.conf`（需 sudo） | keyd 的 mod-tap 配置（可选） |
-| `grub-themes/` | `/usr/share/grub/themes/` | 三个 GRUB 引导主题的完整文件（bsol / SekiroShadow / tela），离线可还原 |
+| `grub-themes/` | `/usr/share/grub/themes/` | 三套 GRUB 引导主题的完整源文件（bsol / SekiroShadow / tela），离线可还原。本机系统里只安装当前启用的 `bsol`，其余两套仅存于仓库，切换时自动重装 |
 | `switch-grub-theme.sh` | 本仓库内（sudo 运行） | 一键切换 GRUB 主题 |
 | `sync.sh` | 本仓库内 | 一键同步脚本：把当前机器的实时配置同步回仓库并推送 |
 
@@ -82,13 +82,15 @@ gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Classic'
 
 ## GRUB 引导主题（可选）
 
-三个主题的**完整文件都在本仓库 `grub-themes/`**（离线还原，装机无需再下载），引导菜单显示 30 秒：
+三套主题的**完整文件都在本仓库 `grub-themes/`**（离线还原，装机无需再下载），引导菜单显示 30 秒：
 
 | 主题 | 风格 | 设计分辨率（`GRUB_GFXMODE`） |
 |---|---|---|
 | `bsol` | "蓝屏"恶搞风（Blue Screen of Life） | `1920x1200,auto` |
 | `SekiroShadow` | 只狼 · 紫粉画风 | `1920x1080,auto` |
 | `tela` | 极简深灰 + 几何色块（2K 素材，16MB） | `2560x1440,auto` |
+
+> **2026-10-03 起系统里只安装当前启用的 `bsol`**：未启用的 `SekiroShadow` 与 `tela`（合计约 18MB）已从 `/usr/share/grub/themes/` 清理，源文件仍完整保留在本仓库；想换用它们，直接跑下面的切换脚本即可（脚本会自动从仓库重装再切换）。
 
 **一键切换**（在仓库目录内，需 sudo）：
 

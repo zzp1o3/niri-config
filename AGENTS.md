@@ -92,6 +92,12 @@
 - 只读监控：风扇转速 hwmon `fan1_input/fan2_input`；CPU 功耗 = `/sys/class/powercap/intel-rapl:0/energy_uj`（root-only）两次采样差（助手 `rapl` 子命令）。
 - 免密助手 `~/.local/bin/zzp-legion-led`（sudoers 白名单**只认路径不认参数** → 新增子命令无需改 sudoers；参数已严格校验，非法输入实测被拒）。子命令：`bl/fnlock/fan/conservation/usb/profile/boost/gpu-pl/fanfull/pl1/pl2/ctgp/cputemp/fanpoint/fancurve/rapl`。原版备份 `zzp-legion-led.orig-20261002`。
 
+## GRUB 引导主题
+
+- 当前生效主题 **bsol**：`/etc/default/grub` 里 `GRUB_THEME="/usr/share/grub/themes/bsol/theme.txt"`、`GRUB_GFXMODE=1920x1200,auto`、菜单显示 30 秒（`GRUB_TIMEOUT_STYLE=menu` + `GRUB_TIMEOUT=30`）。
+- 三套主题（bsol / SekiroShadow / tela）的**完整源文件都在 `~/niri-config/grub-themes/`**（仓库定位是离线迁移快照，**仓库备份不要删**）；切换用 `sudo ~/niri-config/switch-grub-theme.sh <bsol|SekiroShadow|tela>`（自动从仓库复制进系统 + 改 `GRUB_THEME`/`GRUB_GFXMODE`/超时 + `update-grub`）。
+- **2026-10-03 清理**：系统 `/usr/share/grub/themes/` 里只保留当前启用的 bsol，未启用的 `tela`（16M）与 `SekiroShadow`（2.3M）安装副本已删除。删除前已核实：两者**非包管理器安装**（`dpkg -S` 无归属）、`/etc/default/grub`/`grub.d/`/`grub.cfg` 均无引用，删后**无需** `update-grub`。想换回任一主题，跑上面的切换脚本即可（会自动从仓库重装）。
+
 ## 其他已知问题 / 背景
 
 - **主题重启后跳成深色（已修）**：根因是 `session.json` 的 `nightModeAutoEnabled=true` + `nightModeAutoMode="location"` 而本机无坐标（日志会警告），自动夜间模式乱判；已置 `nightModeAutoEnabled=false`（暖色 `nightModeEnabled` 保留）。另：壁纸路径曾指向已不存在的 `~/图片/photos/`，已修正到 `~/图片/wallpaper/`。
